@@ -80,6 +80,7 @@ export default function CaregiverDashboard() {
         setSelectedPatient(null);
       } else {
         console.error("Failed to fetch doses:", err);
+        setFetchError("Could not load doses. Please try again.");
       }
     }
   }, []);
@@ -158,16 +159,16 @@ export default function CaregiverDashboard() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
+      <header className="app-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <img src={logo} alt="MedTrack" style={{ height: "36px" }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <span style={{ fontSize: "0.875rem" }}>{user?.full_name}</span>
           <span style={{ background: "rgba(255,255,255,0.2)", padding: "0.25rem 0.75rem", borderRadius: "var(--radius)", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.05em" }}>
             READ-ONLY
           </span>
-          <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer" }}>
+          <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer", minHeight: "auto", padding: "0.25rem" }}>
             Logout
           </button>
         </div>
@@ -218,7 +219,7 @@ export default function CaregiverDashboard() {
         )}
 
         {fetchError && (
-          <div style={{ padding: "1.5rem", background: "#fef2f2", border: "1px solid var(--color-danger)", borderRadius: "var(--radius)" }}>
+          <div style={{ padding: "1rem 1.25rem", background: "#fef2f2", border: "1px solid var(--color-danger)", borderRadius: "var(--radius)" }}>
             <p style={{ color: "var(--color-danger)", fontSize: "0.875rem" }}>{fetchError}</p>
           </div>
         )}
@@ -286,7 +287,7 @@ export default function CaregiverDashboard() {
                           {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                         </p>
                         {entries.map((e) => (
-                          <div key={e.log_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
+                          <div key={e.log_id} className="history-entry" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
                             <div>
                               <strong>{e.medication_name}</strong>
                               <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem" }}>{e.dosage}</span>

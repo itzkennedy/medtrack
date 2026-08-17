@@ -42,6 +42,7 @@ export default function PatientDashboard() {
   const [adherence, setAdherence] = useState(null);
   const [medications, setMedications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
@@ -50,6 +51,12 @@ export default function PatientDashboard() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [caregivers, setCaregivers] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  };
 
   const fetchDoses = useCallback(async () => {
     try {
@@ -57,6 +64,7 @@ export default function PatientDashboard() {
       setDoses(data);
     } catch (err) {
       console.error("Failed to fetch doses:", err);
+      setFetchError("Could not load your doses. Please try again.");
     }
   }, []);
 
@@ -88,6 +96,7 @@ export default function PatientDashboard() {
   }, []);
 
   const refresh = useCallback(async () => {
+    setFetchError(null);
     await Promise.all([fetchDoses(), fetchAdherence(), fetchMedications(), fetchCaregivers()]);
   }, [fetchDoses, fetchAdherence, fetchMedications, fetchCaregivers]);
 
@@ -114,8 +123,13 @@ export default function PatientDashboard() {
   }, [view, history.length, historyLoading, fetchHistory]);
 
   const handleLogDose = async (scheduleId, status) => {
-    await api.logDose(scheduleId, status);
-    refresh();
+    try {
+      await api.logDose(scheduleId, status);
+      showToast(`Dose marked as ${status}`);
+      await refresh();
+    } catch (err) {
+      showToast(err.message || "Failed to log dose", "error");
+    }
   };
 
   const handleInvite = async () => {
@@ -137,9 +151,10 @@ export default function PatientDashboard() {
     try {
       await api.deleteMedication(med.medication_id);
       if (editingMed?.medication_id === med.medication_id) setEditingMed(null);
+      showToast(`${med.name} deleted`);
       refresh();
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || "Failed to delete medication", "error");
     }
   };
 
@@ -147,9 +162,10 @@ export default function PatientDashboard() {
     if (!window.confirm(`Revoke ${cg.full_name}'s access to your data?`)) return;
     try {
       await api.revokeCaregiverAccess(cg.link_id);
+      showToast(`Access revoked for ${cg.full_name}`);
       fetchCaregivers();
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || "Failed to revoke access", "error");
     }
   };
 
@@ -168,19 +184,31 @@ export default function PatientDashboard() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
+      {toast && <div className={`toast toast--${toast.type}`}>{toast.message}</div>}
+
+      <header className="app-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <img src={logo} alt="MedTrack" style={{ height: "36px" }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <span style={{ fontSize: "0.875rem" }}>{user?.full_name}</span>
-          <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer" }}>
+          <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer", minHeight: "auto", padding: "0.25rem" }}>
             Logout
           </button>
         </div>
       </header>
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", gap: "1.5rem", padding: "1.5rem", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+
+      <div className="dashboard-grid">
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {fetchError && (
+            <div style={{ padding: "0.75rem 1rem", background: "#fef2f2", border: "1px solid var(--color-danger)", borderRadius: "var(--radius)" }}>
+              <p style={{ color: "var(--color-danger)", fontSize: "0.875rem" }}>{fetchError}</p>
+              <button onClick={refresh} style={{ marginTop: "0.5rem", background: "var(--color-danger)", color: "#fff", fontSize: "0.8rem", padding: "0.3rem 0.75rem", minHeight: "auto" }}>
+                Retry
+              </button>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               onClick={() => setView("today")}
@@ -235,7 +263,7 @@ export default function PatientDashboard() {
                         {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                       </p>
                       {entries.map((e) => (
-                        <div key={e.log_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
+                        <div key={e.log_id} className="history-entry" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
                           <div>
                             <strong>{e.medication_name}</strong>
                             <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem" }}>{e.dosage}</span>
@@ -253,10 +281,12 @@ export default function PatientDashboard() {
             </section>
           )}
 
-          {medications.length > 0 && (
-            <section>
-              <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>My Medications</h2>
-              {medications.map((med) => (
+          <section>
+            <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>My Medications</h2>
+            {medications.length === 0 ? (
+              <p style={{ color: "var(--color-muted)", fontSize: "0.875rem" }}>No medications added yet. Use the form to add your first medication.</p>
+            ) : (
+              medications.map((med) => (
                 <div key={med.medication_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.75rem 1rem", marginBottom: "0.5rem" }}>
                   <div>
                     <strong>{med.name}</strong>
@@ -270,21 +300,21 @@ export default function PatientDashboard() {
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <button
                       onClick={() => setEditingMed(med)}
-                      style={{ background: "none", border: "none", color: "var(--color-primary)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer" }}
+                      style={{ background: "none", border: "none", color: "var(--color-primary)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(med)}
-                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer" }}
+                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
                     >
                       Delete
                     </button>
                   </div>
                 </div>
-              ))}
-            </section>
-          )}
+              ))
+            )}
+          </section>
 
           <div>
             <button
@@ -317,7 +347,7 @@ export default function PatientDashboard() {
                     </div>
                     <button
                       onClick={() => handleRevoke(cg)}
-                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.75rem", fontWeight: 500, cursor: "pointer" }}
+                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.75rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
                     >
                       Revoke
                     </button>

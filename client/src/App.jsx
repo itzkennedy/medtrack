@@ -6,9 +6,12 @@ import PatientDashboard from "./pages/PatientDashboard.jsx";
 import CaregiverDashboard from "./pages/CaregiverDashboard.jsx";
 import "./index.css";
 
-function ProtectedRoute({ children }) {
-  const { token } = useAuth();
+function ProtectedRoute({ children, allowedRole }) {
+  const { token, user } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
+  if (allowedRole && user && user.role !== allowedRole) {
+    return <Navigate to={user.role === "caregiver" ? "/caregiver" : "/dashboard"} replace />;
+  }
   return children;
 }
 
@@ -25,8 +28,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
-      <Route path="/caregiver" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute allowedRole="patient"><PatientDashboard /></ProtectedRoute>} />
+      <Route path="/caregiver" element={<ProtectedRoute allowedRole="caregiver"><CaregiverDashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

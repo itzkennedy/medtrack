@@ -1,4 +1,5 @@
 /* Sprint 0 — Global styles (minimal, clean baseline) */
+/* Sprint 5 — Responsive + polish additions */
 
 *,
 *::before,
@@ -28,6 +29,8 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button {
@@ -37,6 +40,10 @@ button {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 input,
@@ -45,4 +52,85 @@ select {
   border-radius: var(--radius);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
+  min-height: 44px;
+}
+
+/* ── Toast feedback ── */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  z-index: 9999;
+  pointer-events: none;
+  animation: toast-in 0.2s ease, toast-out 0.3s ease 1.7s forwards;
+}
+.toast--success { background: var(--color-success); }
+.toast--error { background: var(--color-danger); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(0.5rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Responsive: PatientDashboard 2-col grid ── */
+.dashboard-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 1rem;
+  }
+}
+
+/* ── Responsive: header ── */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0.6rem 1rem !important;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .app-header .header-right {
+    gap: 0.5rem;
+  }
+}
+
+/* ── Responsive: DoseCard ── */
+@media (max-width: 480px) {
+  .dose-actions {
+    flex-wrap: wrap;
+  }
+  .dose-actions button {
+    min-height: 36px;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+  }
+}
+
+/* ── Responsive: history entry ── */
+@media (max-width: 480px) {
+  .history-entry {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.25rem;
+  }
 }

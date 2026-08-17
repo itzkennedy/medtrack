@@ -95,6 +95,10 @@ router.put("/:medication_id", authenticate, requireRole("patient"), async (req, 
     const { medication_id } = req.params;
     const { name, dosage, start_date, end_date, time_of_day, days_of_week } = req.body;
 
+    if (!name || !dosage || !start_date || !time_of_day || !days_of_week) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
     const { rows: meds } = await db.query(
       "SELECT medication_id FROM medication WHERE medication_id = $1 AND user_id = $2",
       [medication_id, req.user.user_id]

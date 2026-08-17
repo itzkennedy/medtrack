@@ -33,14 +33,30 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const validate = () => {
+    if (!form.name.trim()) return "Medication name is required";
+    if (!form.dosage.trim()) return "Dosage is required";
+    if (!form.startDate) return "Start date is required";
+    if (!form.time) return "Time of day is required";
+    if (form.endDate && form.startDate && form.endDate < form.startDate) {
+      return "End date must be after start date";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
-        name: form.name,
-        dosage: form.dosage,
+        name: form.name.trim(),
+        dosage: form.dosage.trim(),
         start_date: form.startDate,
         end_date: form.endDate || null,
         time_of_day: form.time,
