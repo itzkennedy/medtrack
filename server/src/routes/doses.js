@@ -29,12 +29,12 @@ function formatDate(date) {
 
 router.get("/today", authenticate, requireRole("patient"), async (req, res) => {
   try {
-    const [schedules] = await db.query(
+    const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, m.name AS medication_name, m.dosage,
               s.time_of_day, s.days_of_week
-       FROM SCHEDULE s
-       JOIN MEDICATION m ON s.medication_id = m.medication_id
-       WHERE m.user_id = ?
+       FROM schedule s
+       JOIN medication m ON s.medication_id = m.medication_id
+       WHERE m.user_id = $1
        ORDER BY s.time_of_day`,
       [req.user.user_id]
     );
@@ -42,13 +42,14 @@ router.get("/today", authenticate, requireRole("patient"), async (req, res) => {
     const scheduleIds = schedules.map((s) => s.schedule_id);
     let logs = [];
     if (scheduleIds.length > 0) {
-      [logs] = await db.query(
+      const logResult = await db.query(
         `SELECT schedule_id, status, log_id
-         FROM ADHERENCE_LOG
-         WHERE schedule_id IN (?) AND DATE(logged_at) = CURDATE()
+         FROM adherence_log
+         WHERE schedule_id = ANY($1::int[]) AND logged_at::date = CURRENT_DATE
          ORDER BY logged_at DESC`,
         [scheduleIds]
       );
+      logs = logResult.rows;
     }
 
     const logMap = {};
@@ -89,25 +90,25 @@ router.post("/:schedule_id/log", authenticate, requireRole("patient"), async (re
       return res.status(400).json({ error: "Invalid status. Must be 'taken', 'skipped', or 'snoozed'" });
     }
 
-    const [schedules] = await db.query(
+    const { rows: found } = await db.query(
       `SELECT s.schedule_id
-       FROM SCHEDULE s
-       JOIN MEDICATION m ON s.medication_id = m.medication_id
-       WHERE s.schedule_id = ? AND m.user_id = ?`,
+       FROM schedule s
+       JOIN medication m ON s.medication_id = m.medication_id
+       WHERE s.schedule_id = $1 AND m.user_id = $2`,
       [schedule_id, req.user.user_id]
     );
 
-    if (schedules.length === 0) {
+    if (found.length === 0) {
       return res.status(404).json({ error: "Schedule not found" });
     }
 
-    const [result] = await db.query(
-      "INSERT INTO ADHERENCE_LOG (schedule_id, status) VALUES (?, ?)",
+    const result = await db.query(
+      "INSERT INTO adherence_log (schedule_id, status) VALUES ($1, $2) RETURNING log_id",
       [schedule_id, status]
     );
 
     res.status(201).json({
-      log_id: result.insertId,
+      log_id: result.rows[0].log_id,
       schedule_id: parseInt(schedule_id),
       status,
     });
@@ -119,11 +120,11 @@ router.post("/:schedule_id/log", authenticate, requireRole("patient"), async (re
 
 router.get("/adherence", authenticate, requireRole("patient"), async (req, res) => {
   try {
-    const [schedules] = await db.query(
+    const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, s.days_of_week
-       FROM SCHEDULE s
-       JOIN MEDICATION m ON s.medication_id = m.medication_id
-       WHERE m.user_id = ?`,
+       FROM schedule s
+       JOIN medication m ON s.medication_id = m.medication_id
+       WHERE m.user_id = $1`,
       [req.user.user_id]
     );
 
@@ -131,12 +132,12 @@ router.get("/adherence", authenticate, requireRole("patient"), async (req, res) 
       return res.json({ seven_day: 0, thirty_day: 0, streak: 0 });
     }
 
-    const [logs] = await db.query(
-      `SELECT al.schedule_id, al.status, DATE(al.logged_at) AS log_date
-       FROM ADHERENCE_LOG al
-       JOIN SCHEDULE s ON al.schedule_id = s.schedule_id
-       JOIN MEDICATION m ON s.medication_id = m.medication_id
-       WHERE m.user_id = ? AND al.logged_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
+    const { rows: logs } = await db.query(
+      `SELECT al.schedule_id, al.status, al.logged_at::date AS log_date
+       FROM adherence_log al
+       JOIN schedule s ON al.schedule_id = s.schedule_id
+       JOIN medication m ON s.medication_id = m.medication_id
+       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - INTERVAL '30 days'`,
       [req.user.user_id]
     );
 

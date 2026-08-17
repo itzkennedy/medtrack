@@ -1,45 +1,40 @@
-CREATE TABLE USER (
-  user_id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(120) NOT NULL,
-  email VARCHAR(160) UNIQUE NOT NULL,
+CREATE TABLE "user" (
+  user_id    SERIAL PRIMARY KEY,
+  full_name  VARCHAR(120) NOT NULL,
+  email      VARCHAR(160) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('patient', 'caregiver') NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  role       VARCHAR(20) NOT NULL CHECK (role IN ('patient', 'caregiver')),
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE CAREGIVER_LINK (
-  link_id INT AUTO_INCREMENT PRIMARY KEY,
-  patient_id INT NOT NULL,
-  caregiver_id INT NOT NULL,
-  status ENUM('pending', 'accepted', 'revoked') DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (patient_id) REFERENCES USER(user_id),
-  FOREIGN KEY (caregiver_id) REFERENCES USER(user_id)
+CREATE TABLE caregiver_link (
+  link_id      SERIAL PRIMARY KEY,
+  patient_id   INT NOT NULL REFERENCES "user"(user_id),
+  caregiver_id INT NOT NULL REFERENCES "user"(user_id),
+  status       VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'revoked')),
+  created_at   TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE MEDICATION (
-  medication_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  name VARCHAR(120) NOT NULL,
-  dosage VARCHAR(60) NOT NULL,
-  start_date DATE NOT NULL,
-  end_date DATE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES USER(user_id)
+CREATE TABLE medication (
+  medication_id SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL REFERENCES "user"(user_id),
+  name          VARCHAR(120) NOT NULL,
+  dosage        VARCHAR(60) NOT NULL,
+  start_date    DATE NOT NULL,
+  end_date      DATE,
+  created_at    TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE SCHEDULE (
-  schedule_id INT AUTO_INCREMENT PRIMARY KEY,
-  medication_id INT NOT NULL,
-  time_of_day TIME NOT NULL,
-  days_of_week VARCHAR(20) NOT NULL,
-  FOREIGN KEY (medication_id) REFERENCES MEDICATION(medication_id)
+CREATE TABLE schedule (
+  schedule_id   SERIAL PRIMARY KEY,
+  medication_id INT NOT NULL REFERENCES medication(medication_id),
+  time_of_day   TIME NOT NULL,
+  days_of_week  VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE ADHERENCE_LOG (
-  log_id INT AUTO_INCREMENT PRIMARY KEY,
-  schedule_id INT NOT NULL,
-  status ENUM('taken', 'skipped', 'snoozed') NOT NULL,
-  logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (schedule_id) REFERENCES SCHEDULE(schedule_id)
+CREATE TABLE adherence_log (
+  log_id      SERIAL PRIMARY KEY,
+  schedule_id INT NOT NULL REFERENCES schedule(schedule_id),
+  status      VARCHAR(20) NOT NULL CHECK (status IN ('taken', 'skipped', 'snoozed')),
+  logged_at   TIMESTAMP DEFAULT NOW()
 );

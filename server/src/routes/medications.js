@@ -6,12 +6,12 @@ const router = Router();
 
 router.get("/", authenticate, async (req, res) => {
   try {
-    const [medications] = await db.query(
+    const { rows: medications } = await db.query(
       `SELECT m.medication_id, m.name, m.dosage, m.start_date, m.end_date, m.created_at,
               s.schedule_id, s.time_of_day, s.days_of_week
-       FROM MEDICATION m
-       LEFT JOIN SCHEDULE s ON m.medication_id = s.medication_id
-       WHERE m.user_id = ?
+       FROM medication m
+       LEFT JOIN schedule s ON m.medication_id = s.medication_id
+       WHERE m.user_id = $1
        ORDER BY m.created_at DESC, s.time_of_day`,
       [req.user.user_id]
     );
@@ -57,16 +57,16 @@ router.post("/", authenticate, requireRole("patient"), async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const [medResult] = await db.query(
-      "INSERT INTO MEDICATION (user_id, name, dosage, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
+    const medResult = await db.query(
+      "INSERT INTO medication (user_id, name, dosage, start_date, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING medication_id",
       [req.user.user_id, name, dosage, start_date, end_date || null]
     );
 
-    const medication_id = medResult.insertId;
+    const medication_id = medResult.rows[0].medication_id;
 
     const timeValue = time_of_day.length === 5 ? time_of_day + ":00" : time_of_day;
-    const [schResult] = await db.query(
-      "INSERT INTO SCHEDULE (medication_id, time_of_day, days_of_week) VALUES (?, ?, ?)",
+    const schResult = await db.query(
+      "INSERT INTO schedule (medication_id, time_of_day, days_of_week) VALUES ($1, $2, $3) RETURNING schedule_id",
       [medication_id, timeValue, days_of_week]
     );
 
@@ -78,7 +78,7 @@ router.post("/", authenticate, requireRole("patient"), async (req, res) => {
       end_date: end_date || null,
       schedules: [
         {
-          schedule_id: schResult.insertId,
+          schedule_id: schResult.rows[0].schedule_id,
           time_of_day: timeValue,
           days_of_week,
         },
