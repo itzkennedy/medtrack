@@ -46,6 +46,12 @@ export const getMedications = (patientId) => {
 export const addMedication = (data) =>
   request("/medications", { method: "POST", body: JSON.stringify(data) });
 
+export const updateMedication = (id, data) =>
+  request(`/medications/${id}`, { method: "PUT", body: JSON.stringify(data) });
+
+export const deleteMedication = (id) =>
+  request(`/medications/${id}`, { method: "DELETE" });
+
 export const getTodayDoses = (patientId) => {
   const qs = patientId ? `?patient_id=${patientId}` : "";
   return request(`/doses/today${qs}`);

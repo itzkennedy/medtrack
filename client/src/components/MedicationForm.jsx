@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as api from "../api/client.js";
 
-export default function MedicationForm({ onAdded }) {
+export default function MedicationForm({ onAdded, editing, onDone }) {
   const [form, setForm] = useState({
     name: "",
     dosage: "",
@@ -13,6 +13,22 @@ export default function MedicationForm({ onAdded }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (editing) {
+      const schedule = editing.schedules?.[0];
+      const rawTime = schedule?.time_of_day || "";
+      const time = rawTime.length === 8 ? rawTime.slice(0, 5) : rawTime;
+      setForm({
+        name: editing.name,
+        dosage: editing.dosage,
+        startDate: editing.start_date?.slice(0, 10) || "",
+        endDate: editing.end_date?.slice(0, 10) || "",
+        time,
+        days: schedule?.days_of_week || "DAILY",
+      });
+    }
+  }, [editing]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -22,16 +38,24 @@ export default function MedicationForm({ onAdded }) {
     setError("");
     setLoading(true);
     try {
-      await api.addMedication({
+      const payload = {
         name: form.name,
         dosage: form.dosage,
         start_date: form.startDate,
         end_date: form.endDate || null,
         time_of_day: form.time,
         days_of_week: form.days,
-      });
-      setForm({ name: "", dosage: "", startDate: "", endDate: "", time: "", days: "DAILY" });
+      };
+      if (editing) {
+        await api.updateMedication(editing.medication_id, payload);
+      } else {
+        await api.addMedication(payload);
+      }
+      if (!editing) {
+        setForm({ name: "", dosage: "", startDate: "", endDate: "", time: "", days: "DAILY" });
+      }
       onAdded?.();
+      onDone?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,7 +65,7 @@ export default function MedicationForm({ onAdded }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <h3 style={{ fontSize: "1rem" }}>Add Medication</h3>
+      <h3 style={{ fontSize: "1rem" }}>{editing ? "Edit Medication" : "Add Medication"}</h3>
       {error && (
         <p style={{ color: "var(--color-danger)", fontSize: "0.8rem" }}>{error}</p>
       )}
@@ -60,9 +84,16 @@ export default function MedicationForm({ onAdded }) {
         <option value="TUE,THU,SAT">Tue / Thu / Sat</option>
         <option value="WEEKDAYS">Weekdays</option>
       </select>
-      <button type="submit" style={{ background: "var(--color-primary)", color: "#fff" }} disabled={loading}>
-        {loading ? "Adding..." : "Add Medication"}
-      </button>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button type="submit" style={{ background: "var(--color-primary)", color: "#fff", flex: 1 }} disabled={loading}>
+          {loading ? "Saving..." : editing ? "Update Medication" : "Add Medication"}
+        </button>
+        {editing && (
+          <button type="button" onClick={onDone} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

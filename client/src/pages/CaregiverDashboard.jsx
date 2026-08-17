@@ -6,6 +6,28 @@ import DoseCard from "../components/DoseCard.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import logo from "../assets/logo.png";
 
+function computeUrgency(timeOfDay, status) {
+  if (status) return null;
+  try {
+    const match = timeOfDay.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (!match) return null;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[4];
+    if (period) {
+      if (period.toUpperCase() === "PM" && hours !== 12) hours += 12;
+      if (period.toUpperCase() === "AM" && hours === 12) hours = 0;
+    }
+    const now = new Date();
+    const scheduled = new Date();
+    scheduled.setHours(hours, minutes, 0, 0);
+    const diffMin = (scheduled - now) / 60000;
+    if (diffMin < 0) return "overdue";
+    if (diffMin <= 60) return "due-soon";
+  } catch {}
+  return null;
+}
+
 export default function CaregiverDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -114,7 +136,6 @@ export default function CaregiverDashboard() {
 
       <div style={{ flex: 1, maxWidth: 800, margin: "0 auto", width: "100%", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-        {/* Patient selector — show if multiple patients */}
         {patients.length > 1 && (
           <div>
             <label style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginRight: "0.5rem" }}>Viewing:</label>
@@ -130,7 +151,6 @@ export default function CaregiverDashboard() {
           </div>
         )}
 
-        {/* No linked patients — show invite code input */}
         {patients.length === 0 && !inviteSuccess && (
           <div style={{ padding: "1.5rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
             <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Link to a Patient</h2>
@@ -154,12 +174,10 @@ export default function CaregiverDashboard() {
           </div>
         )}
 
-        {/* Invite success after linking */}
         {inviteSuccess && patients.length > 0 && (
           <p style={{ color: "var(--color-success)", fontSize: "0.875rem" }}>{inviteSuccess}</p>
         )}
 
-        {/* Today section — read-only DoseCards */}
         {selectedPatient && (
           <>
             {selectedName && (
@@ -172,7 +190,9 @@ export default function CaregiverDashboard() {
               ) : doses.length === 0 ? (
                 <p style={{ color: "var(--color-muted)" }}>No scheduled doses for today.</p>
               ) : (
-                doses.map((d) => <DoseCard key={d.schedule_id} {...d} readOnly />)
+                doses.map((d) => (
+                  <DoseCard key={d.schedule_id} {...d} readOnly urgency={computeUrgency(d.time_of_day, d.status)} />
+                ))
               )}
             </section>
 

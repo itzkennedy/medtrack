@@ -90,4 +90,74 @@ router.post("/", authenticate, requireRole("patient"), async (req, res) => {
   }
 });
 
+router.put("/:medication_id", authenticate, requireRole("patient"), async (req, res) => {
+  try {
+    const { medication_id } = req.params;
+    const { name, dosage, start_date, end_date, time_of_day, days_of_week } = req.body;
+
+    const { rows: meds } = await db.query(
+      "SELECT medication_id FROM medication WHERE medication_id = $1 AND user_id = $2",
+      [medication_id, req.user.user_id]
+    );
+    if (meds.length === 0) {
+      return res.status(403).json({ error: "Medication not found or access denied" });
+    }
+
+    await db.query(
+      "UPDATE medication SET name = $1, dosage = $2, start_date = $3, end_date = $4 WHERE medication_id = $5",
+      [name, dosage, start_date, end_date || null, medication_id]
+    );
+
+    if (time_of_day && days_of_week) {
+      const timeValue = time_of_day.length === 5 ? time_of_day + ":00" : time_of_day;
+      await db.query(
+        "UPDATE schedule SET time_of_day = $1, days_of_week = $2 WHERE medication_id = $3",
+        [timeValue, days_of_week, medication_id]
+      );
+    }
+
+    const { rows: updated } = await db.query(
+      `SELECT m.medication_id, m.name, m.dosage, m.start_date, m.end_date, m.created_at,
+              s.schedule_id, s.time_of_day, s.days_of_week
+       FROM medication m LEFT JOIN schedule s ON m.medication_id = s.medication_id
+       WHERE m.medication_id = $1`,
+      [medication_id]
+    );
+
+    res.json({
+      medication_id: updated[0].medication_id,
+      name: updated[0].name,
+      dosage: updated[0].dosage,
+      start_date: updated[0].start_date,
+      end_date: updated[0].end_date,
+      schedules: updated[0].schedule_id
+        ? [{ schedule_id: updated[0].schedule_id, time_of_day: updated[0].time_of_day, days_of_week: updated[0].days_of_week }]
+        : [],
+    });
+  } catch (err) {
+    console.error("Update medication error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:medication_id", authenticate, requireRole("patient"), async (req, res) => {
+  try {
+    const { medication_id } = req.params;
+
+    const { rows: meds } = await db.query(
+      "SELECT medication_id FROM medication WHERE medication_id = $1 AND user_id = $2",
+      [medication_id, req.user.user_id]
+    );
+    if (meds.length === 0) {
+      return res.status(403).json({ error: "Medication not found or access denied" });
+    }
+
+    await db.query("DELETE FROM medication WHERE medication_id = $1", [medication_id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete medication error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
