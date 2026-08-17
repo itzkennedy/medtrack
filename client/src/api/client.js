@@ -65,6 +65,14 @@ export const getAdherence = (patientId) => {
   return request(`/doses/adherence${qs}`);
 };
 
+export const getDoseHistory = (days, patientId) => {
+  const params = new URLSearchParams();
+  if (days) params.set("days", String(days));
+  if (patientId) params.set("patient_id", String(patientId));
+  const qs = params.toString() ? `?${params}` : "";
+  return request(`/doses/history${qs}`);
+};
+
 export const getLinkedPatients = () => request("/caregiver/patients");
 
 export const generateInvite = () =>
@@ -72,3 +80,8 @@ export const generateInvite = () =>
 
 export const acceptInvite = (invite_code) =>
   request("/caregiver/accept", { method: "POST", body: JSON.stringify({ invite_code }) });
+
+export const getCaregiverAccess = () => request("/caregiver/access");
+
+export const revokeCaregiverAccess = (linkId) =>
+  request(`/caregiver/access/${linkId}`, { method: "DELETE" });

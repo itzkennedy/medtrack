@@ -29,6 +29,12 @@ function computeUrgency(timeOfDay, status) {
   return null;
 }
 
+const statusColors = {
+  taken: "var(--color-success)",
+  skipped: "var(--color-danger)",
+  snoozed: "var(--color-warning)",
+};
+
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +46,10 @@ export default function PatientDashboard() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [editingMed, setEditingMed] = useState(null);
+  const [view, setView] = useState("today");
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [caregivers, setCaregivers] = useState([]);
 
   const fetchDoses = useCallback(async () => {
     try {
@@ -68,13 +78,40 @@ export default function PatientDashboard() {
     }
   }, []);
 
+  const fetchCaregivers = useCallback(async () => {
+    try {
+      const data = await api.getCaregiverAccess();
+      setCaregivers(data);
+    } catch (err) {
+      console.error("Failed to fetch caregivers:", err);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
-    await Promise.all([fetchDoses(), fetchAdherence(), fetchMedications()]);
-  }, [fetchDoses, fetchAdherence, fetchMedications]);
+    await Promise.all([fetchDoses(), fetchAdherence(), fetchMedications(), fetchCaregivers()]);
+  }, [fetchDoses, fetchAdherence, fetchMedications, fetchCaregivers]);
 
   useEffect(() => {
     refresh().then(() => setLoading(false));
   }, [refresh]);
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const data = await api.getDoseHistory(30);
+      setHistory(data);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === "history" && history.length === 0 && !historyLoading) {
+      fetchHistory();
+    }
+  }, [view, history.length, historyLoading, fetchHistory]);
 
   const handleLogDose = async (scheduleId, status) => {
     await api.logDose(scheduleId, status);
@@ -87,6 +124,7 @@ export default function PatientDashboard() {
     try {
       const data = await api.generateInvite();
       setInviteCode(data.invite_code);
+      fetchCaregivers();
     } catch (err) {
       setInviteError(err.message);
     } finally {
@@ -100,6 +138,16 @@ export default function PatientDashboard() {
       await api.deleteMedication(med.medication_id);
       if (editingMed?.medication_id === med.medication_id) setEditingMed(null);
       refresh();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRevoke = async (cg) => {
+    if (!window.confirm(`Revoke ${cg.full_name}'s access to your data?`)) return;
+    try {
+      await api.revokeCaregiverAccess(cg.link_id);
+      fetchCaregivers();
     } catch (err) {
       alert(err.message);
     }
@@ -133,20 +181,78 @@ export default function PatientDashboard() {
       </header>
       <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", gap: "1.5rem", padding: "1.5rem", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          <section>
-            <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Today</h2>
-            {doses.length === 0 ? (
-              <p style={{ color: "var(--color-muted)" }}>No scheduled doses for today.</p>
-            ) : (
-              doses.map((d) => (
-                <DoseCard key={d.schedule_id} {...d} onLog={handleLogDose} urgency={computeUrgency(d.time_of_day, d.status)} />
-              ))
-            )}
-          </section>
-          <section>
-            <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Adherence</h2>
-            <AdherenceStat stats={adherence} />
-          </section>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              onClick={() => setView("today")}
+              style={{ background: view === "today" ? "var(--color-primary)" : "var(--color-surface)", color: view === "today" ? "#fff" : "var(--color-text)", border: "1px solid var(--color-border)", fontWeight: 500, fontSize: "0.875rem" }}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setView("history")}
+              style={{ background: view === "history" ? "var(--color-primary)" : "var(--color-surface)", color: view === "history" ? "#fff" : "var(--color-text)", border: "1px solid var(--color-border)", fontWeight: 500, fontSize: "0.875rem" }}
+            >
+              History
+            </button>
+          </div>
+
+          {view === "today" && (
+            <>
+              <section>
+                <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Today</h2>
+                {doses.length === 0 ? (
+                  <p style={{ color: "var(--color-muted)" }}>No scheduled doses for today.</p>
+                ) : (
+                  doses.map((d) => (
+                    <DoseCard key={d.schedule_id} {...d} onLog={handleLogDose} urgency={computeUrgency(d.time_of_day, d.status)} />
+                  ))
+                )}
+              </section>
+              <section>
+                <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Adherence</h2>
+                <AdherenceStat stats={adherence} />
+              </section>
+            </>
+          )}
+
+          {view === "history" && (
+            <section>
+              <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Dose History (Last 30 Days)</h2>
+              {historyLoading ? (
+                <p style={{ color: "var(--color-muted)" }}>Loading...</p>
+              ) : history.length === 0 ? (
+                <p style={{ color: "var(--color-muted)" }}>No logged doses yet.</p>
+              ) : (
+                (() => {
+                  const grouped = {};
+                  for (const entry of history) {
+                    if (!grouped[entry.date]) grouped[entry.date] = [];
+                    grouped[entry.date].push(entry);
+                  }
+                  return Object.entries(grouped).map(([date, entries]) => (
+                    <div key={date} style={{ marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-muted)", marginBottom: "0.4rem" }}>
+                        {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                      </p>
+                      {entries.map((e) => (
+                        <div key={e.log_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
+                          <div>
+                            <strong>{e.medication_name}</strong>
+                            <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem" }}>{e.dosage}</span>
+                            <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem", fontSize: "0.8rem" }}>scheduled {e.scheduled_time}</span>
+                          </div>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 500, color: statusColors[e.status] || "var(--color-muted)", textTransform: "capitalize" }}>
+                            {e.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()
+              )}
+            </section>
+          )}
+
           {medications.length > 0 && (
             <section>
               <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>My Medications</h2>
@@ -179,6 +285,7 @@ export default function PatientDashboard() {
               ))}
             </section>
           )}
+
           <div>
             <button
               onClick={handleInvite}
@@ -194,6 +301,28 @@ export default function PatientDashboard() {
               <div style={{ marginTop: "0.75rem", padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
                 <p style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginBottom: "0.5rem" }}>Share this code with your caregiver:</p>
                 <p style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "0.15em", fontFamily: "monospace" }}>{inviteCode}</p>
+              </div>
+            )}
+            {caregivers.length > 0 && (
+              <div style={{ marginTop: "0.75rem" }}>
+                <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-muted)", marginBottom: "0.4rem" }}>Linked Caregivers</p>
+                {caregivers.map((cg) => (
+                  <div key={cg.link_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.5rem 0.75rem", marginBottom: "0.35rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.875rem" }}>{cg.full_name}</span>
+                      {cg.email && <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", marginLeft: "0.4rem" }}>{cg.email}</span>}
+                      {cg.status === "pending" && (
+                        <span style={{ fontSize: "0.7rem", color: "var(--color-warning)", marginLeft: "0.4rem" }}>pending</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRevoke(cg)}
+                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.75rem", fontWeight: 500, cursor: "pointer" }}
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -84,4 +84,59 @@ router.get("/patients", authenticate, requireRole("caregiver"), async (req, res)
   }
 });
 
+// Patient: list all caregivers with access
+router.get("/access", authenticate, requireRole("patient"), async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT cl.link_id, cl.status, cl.created_at, cl.invite_code,
+              u.full_name, u.email
+       FROM caregiver_link cl
+       LEFT JOIN "user" u ON cl.caregiver_id = u.user_id
+       WHERE cl.patient_id = $1 AND cl.status IN ('accepted', 'pending')
+       ORDER BY cl.created_at DESC`,
+      [req.user.user_id]
+    );
+
+    const result = rows.map((row) => ({
+      link_id: row.link_id,
+      full_name: row.full_name || "Pending",
+      email: row.email || null,
+      status: row.status,
+      invite_code: row.status === "pending" ? row.invite_code : null,
+      created_at: row.created_at,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Get caregiver access error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Patient: revoke caregiver access
+router.delete("/access/:link_id", authenticate, requireRole("patient"), async (req, res) => {
+  try {
+    const { link_id } = req.params;
+
+    const { rows: links } = await db.query(
+      "SELECT link_id FROM caregiver_link WHERE link_id = $1 AND patient_id = $2",
+      [link_id, req.user.user_id]
+    );
+
+    if (links.length === 0) {
+      return res.status(403).json({ error: "Link not found or access denied" });
+    }
+
+    await db.query(
+      "UPDATE caregiver_link SET status = 'revoked' WHERE link_id = $1",
+      [link_id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Revoke caregiver error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

@@ -249,4 +249,40 @@ router.get("/adherence", authenticate, async (req, res) => {
   }
 });
 
+router.get("/history", authenticate, async (req, res) => {
+  try {
+    const target = await resolvePatientId(req);
+    if (target.error) return res.status(target.status).json({ error: target.error });
+
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+
+    const { rows: history } = await db.query(
+      `SELECT al.log_id, al.status, al.logged_at,
+              m.name AS medication_name, m.dosage,
+              s.time_of_day, s.days_of_week
+       FROM adherence_log al
+       JOIN schedule s ON al.schedule_id = s.schedule_id
+       JOIN medication m ON s.medication_id = m.medication_id
+       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - ($2 || ' days')::interval
+       ORDER BY al.logged_at DESC`,
+      [target.userId, String(days)]
+    );
+
+    const result = history.map((row) => ({
+      log_id: row.log_id,
+      medication_name: row.medication_name,
+      dosage: row.dosage,
+      status: row.status,
+      scheduled_time: formatTime(row.time_of_day),
+      logged_at: row.logged_at,
+      date: row.logged_at.toISOString().slice(0, 10),
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Get dose history error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
