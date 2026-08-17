@@ -5,6 +5,7 @@ import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
 import MedicationForm from "../components/MedicationForm.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
+import logo from "../assets/logo.png";
 
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
@@ -60,7 +61,9 @@ export default function PatientDashboard() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
-        <h1 style={{ fontSize: "1.125rem" }}>MedTrack</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <img src={logo} alt="MedTrack" style={{ height: "36px" }} />
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <span style={{ fontSize: "0.875rem" }}>{user?.full_name}</span>
           <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer" }}>

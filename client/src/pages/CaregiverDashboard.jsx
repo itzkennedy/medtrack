@@ -1,6 +1,7 @@
 import DoseCard from "../components/DoseCard.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 /**
  * CaregiverDashboard — read-only mirror of patient's view.
@@ -21,7 +22,9 @@ export default function CaregiverDashboard() {
           color: "#fff",
         }}
       >
-        <h1 style={{ fontSize: "1.125rem" }}>MedTrack</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <img src={logo} alt="MedTrack" style={{ height: "36px" }} />
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <span
             style={{
