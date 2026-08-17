@@ -27,8 +27,38 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-router.get("/today", authenticate, requireRole("patient"), async (req, res) => {
+async function resolvePatientId(req) {
+  const patientId = req.query.patient_id;
+
+  if (!patientId) {
+    if (req.user.role !== "patient") {
+      return { error: "patient_id is required for caregiver access", status: 400 };
+    }
+    return { userId: req.user.user_id };
+  }
+
+  if (req.user.role !== "caregiver") {
+    return { error: "patient_id parameter is not allowed for patients", status: 400 };
+  }
+
+  const { rows } = await db.query(
+    `SELECT link_id FROM caregiver_link
+     WHERE patient_id = $1 AND caregiver_id = $2 AND status = 'accepted'`,
+    [patientId, req.user.user_id]
+  );
+
+  if (rows.length === 0) {
+    return { error: "You are not linked to this patient", status: 403 };
+  }
+
+  return { userId: parseInt(patientId) };
+}
+
+router.get("/today", authenticate, async (req, res) => {
   try {
+    const target = await resolvePatientId(req);
+    if (target.error) return res.status(target.status).json({ error: target.error });
+
     const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, m.name AS medication_name, m.dosage,
               s.time_of_day, s.days_of_week
@@ -36,7 +66,7 @@ router.get("/today", authenticate, requireRole("patient"), async (req, res) => {
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1
        ORDER BY s.time_of_day`,
-      [req.user.user_id]
+      [target.userId]
     );
 
     const scheduleIds = schedules.map((s) => s.schedule_id);
@@ -118,14 +148,17 @@ router.post("/:schedule_id/log", authenticate, requireRole("patient"), async (re
   }
 });
 
-router.get("/adherence", authenticate, requireRole("patient"), async (req, res) => {
+router.get("/adherence", authenticate, async (req, res) => {
   try {
+    const target = await resolvePatientId(req);
+    if (target.error) return res.status(target.status).json({ error: target.error });
+
     const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, s.days_of_week
        FROM schedule s
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1`,
-      [req.user.user_id]
+      [target.userId]
     );
 
     if (schedules.length === 0) {
@@ -138,7 +171,7 @@ router.get("/adherence", authenticate, requireRole("patient"), async (req, res) 
        JOIN schedule s ON al.schedule_id = s.schedule_id
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - INTERVAL '30 days'`,
-      [req.user.user_id]
+      [target.userId]
     );
 
     const logMap = {};

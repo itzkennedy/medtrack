@@ -38,18 +38,31 @@ export const register = (data) =>
 
 export const getMe = () => request("/auth/me");
 
-export const getMedications = () => request("/medications");
+export const getMedications = (patientId) => {
+  const qs = patientId ? `?patient_id=${patientId}` : "";
+  return request(`/medications${qs}`);
+};
 
 export const addMedication = (data) =>
   request("/medications", { method: "POST", body: JSON.stringify(data) });
 
-export const getTodayDoses = () => request("/doses/today");
+export const getTodayDoses = (patientId) => {
+  const qs = patientId ? `?patient_id=${patientId}` : "";
+  return request(`/doses/today${qs}`);
+};
 
 export const logDose = (scheduleId, status) =>
   request(`/doses/${scheduleId}/log`, { method: "POST", body: JSON.stringify({ status }) });
 
-export const getAdherence = () => request("/doses/adherence");
+export const getAdherence = (patientId) => {
+  const qs = patientId ? `?patient_id=${patientId}` : "";
+  return request(`/doses/adherence${qs}`);
+};
 
 export const getLinkedPatients = () => request("/caregiver/patients");
 
-export const generateInvite = () => request("/caregiver/invite", { method: "POST" });
+export const generateInvite = () =>
+  request("/caregiver/invite", { method: "POST" });
+
+export const acceptInvite = (invite_code) =>
+  request("/caregiver/accept", { method: "POST", body: JSON.stringify({ invite_code }) });

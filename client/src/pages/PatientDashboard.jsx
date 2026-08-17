@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
@@ -13,6 +13,9 @@ export default function PatientDashboard() {
   const [doses, setDoses] = useState([]);
   const [adherence, setAdherence] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   const fetchDoses = useCallback(async () => {
     try {
@@ -43,6 +46,19 @@ export default function PatientDashboard() {
   const handleLogDose = async (scheduleId, status) => {
     await api.logDose(scheduleId, status);
     refresh();
+  };
+
+  const handleInvite = async () => {
+    setInviteLoading(true);
+    setInviteError("");
+    try {
+      const data = await api.generateInvite();
+      setInviteCode(data.invite_code);
+    } catch (err) {
+      setInviteError(err.message);
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -85,9 +101,24 @@ export default function PatientDashboard() {
             <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Adherence</h2>
             <AdherenceStat stats={adherence} />
           </section>
-          <button style={{ alignSelf: "flex-start", background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-primary)", fontWeight: 500 }} disabled title="Sprint 3">
-            Invite Caregiver
-          </button>
+          <div>
+            <button
+              onClick={handleInvite}
+              disabled={inviteLoading}
+              style={{ alignSelf: "flex-start", background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-primary)", fontWeight: 500, cursor: "pointer" }}
+            >
+              {inviteLoading ? "Generating..." : "Invite Caregiver"}
+            </button>
+            {inviteError && (
+              <p style={{ color: "var(--color-danger)", fontSize: "0.8rem", marginTop: "0.5rem" }}>{inviteError}</p>
+            )}
+            {inviteCode && (
+              <div style={{ marginTop: "0.75rem", padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
+                <p style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginBottom: "0.5rem" }}>Share this code with your caregiver:</p>
+                <p style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "0.15em", fontFamily: "monospace" }}>{inviteCode}</p>
+              </div>
+            )}
+          </div>
         </div>
         <aside><MedicationForm onAdded={refresh} /></aside>
       </div>

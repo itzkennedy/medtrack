@@ -10,8 +10,9 @@ CREATE TABLE "user" (
 CREATE TABLE caregiver_link (
   link_id      SERIAL PRIMARY KEY,
   patient_id   INT NOT NULL REFERENCES "user"(user_id),
-  caregiver_id INT NOT NULL REFERENCES "user"(user_id),
+  caregiver_id INT REFERENCES "user"(user_id),
   status       VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'revoked')),
+  invite_code  VARCHAR(10) UNIQUE,
   created_at   TIMESTAMP DEFAULT NOW()
 );
 
