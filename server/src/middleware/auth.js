@@ -1,13 +1,19 @@
-/**
- * auth middleware — JWT verification + role check.
- * Sprint 0: stub only. Real JWT logic lands in Sprint 1.
- */
+const jwt = require("jsonwebtoken");
 
 function authenticate(req, res, next) {
-  // TODO Sprint 1: verify JWT from Authorization header
-  // For now, attach a mock user so routes don't crash
-  req.user = { id: 1, role: "patient" };
-  next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { user_id: decoded.user_id, role: decoded.role };
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
 }
 
 function requireRole(...roles) {
