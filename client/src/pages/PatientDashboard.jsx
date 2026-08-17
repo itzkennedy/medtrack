@@ -6,6 +6,7 @@ import DoseCard from "../components/DoseCard.jsx";
 import MedicationForm from "../components/MedicationForm.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import logo from "../assets/logo.png";
+import "../Dashboard.css";
 
 function computeUrgency(timeOfDay, status) {
   if (status) return null;
@@ -28,12 +29,6 @@ function computeUrgency(timeOfDay, status) {
   } catch {}
   return null;
 }
-
-const statusColors = {
-  taken: "var(--color-success)",
-  skipped: "var(--color-danger)",
-  snoozed: "var(--color-warning)",
-};
 
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
@@ -176,49 +171,46 @@ export default function PatientDashboard() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p>Loading...</p>
+      <div className="dashboard" style={{ alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "var(--color-muted)" }}>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div className="dashboard">
       {toast && <div className={`toast toast--${toast.type}`}>{toast.message}</div>}
 
-      <header className="app-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.5rem", background: "var(--color-primary)", color: "#fff" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <img src={logo} alt="MedTrack" style={{ height: "36px" }} />
+      <header className="dashboard-header">
+        <div className="dashboard-header__left">
+          <img src={logo} alt="MedTrack" style={{ height: "32px" }} />
         </div>
-        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span style={{ fontSize: "0.875rem" }}>{user?.full_name}</span>
-          <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#fff", textDecoration: "none", fontSize: "0.875rem", cursor: "pointer", minHeight: "auto", padding: "0.25rem" }}>
-            Logout
-          </button>
+        <div className="dashboard-header__right">
+          <span className="dashboard-header__name">{user?.full_name}</span>
+          <button className="dashboard-header__logout" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 
-      <div className="dashboard-grid">
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <div className="dashboard-body">
+        <main className="dashboard-main">
           {fetchError && (
-            <div style={{ padding: "0.75rem 1rem", background: "#fef2f2", border: "1px solid var(--color-danger)", borderRadius: "var(--radius)" }}>
-              <p style={{ color: "var(--color-danger)", fontSize: "0.875rem" }}>{fetchError}</p>
-              <button onClick={refresh} style={{ marginTop: "0.5rem", background: "var(--color-danger)", color: "#fff", fontSize: "0.8rem", padding: "0.3rem 0.75rem", minHeight: "auto" }}>
-                Retry
-              </button>
+            <div className="error-banner">
+              <span className="error-banner__icon">&#9888;</span>
+              <span className="error-banner__text">{fetchError}</span>
+              <button className="error-banner__retry" onClick={refresh}>Retry</button>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+          <div className="view-tabs">
             <button
+              className={`view-tab ${view === "today" ? "view-tab--active" : ""}`}
               onClick={() => setView("today")}
-              style={{ background: view === "today" ? "var(--color-primary)" : "var(--color-surface)", color: view === "today" ? "#fff" : "var(--color-text)", border: "1px solid var(--color-border)", fontWeight: 500, fontSize: "0.875rem" }}
             >
               Today
             </button>
             <button
+              className={`view-tab ${view === "history" ? "view-tab--active" : ""}`}
               onClick={() => setView("history")}
-              style={{ background: view === "history" ? "var(--color-primary)" : "var(--color-surface)", color: view === "history" ? "#fff" : "var(--color-text)", border: "1px solid var(--color-border)", fontWeight: 500, fontSize: "0.875rem" }}
             >
               History
             </button>
@@ -227,17 +219,36 @@ export default function PatientDashboard() {
           {view === "today" && (
             <>
               <section>
-                <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Today</h2>
+                <div className="section-header">
+                  <h2 className="section-header__title">Today&apos;s Doses</h2>
+                  {doses.length > 0 && (
+                    <span className="section-header__count">{doses.length}</span>
+                  )}
+                </div>
                 {doses.length === 0 ? (
-                  <p style={{ color: "var(--color-muted)" }}>No scheduled doses for today.</p>
+                  <div className="empty-state">
+                    <div className="empty-state__icon">&#10003;</div>
+                    <div className="empty-state__title">All caught up!</div>
+                    <div className="empty-state__desc">
+                      No scheduled doses for today. Add a medication to get started.
+                    </div>
+                  </div>
                 ) : (
                   doses.map((d) => (
-                    <DoseCard key={d.schedule_id} {...d} onLog={handleLogDose} urgency={computeUrgency(d.time_of_day, d.status)} />
+                    <DoseCard
+                      key={d.schedule_id}
+                      {...d}
+                      onLog={handleLogDose}
+                      urgency={computeUrgency(d.time_of_day, d.status)}
+                    />
                   ))
                 )}
               </section>
+
               <section>
-                <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Adherence</h2>
+                <div className="section-header">
+                  <h2 className="section-header__title">Adherence</h2>
+                </div>
                 <AdherenceStat stats={adherence} />
               </section>
             </>
@@ -245,11 +256,20 @@ export default function PatientDashboard() {
 
           {view === "history" && (
             <section>
-              <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Dose History (Last 30 Days)</h2>
+              <div className="section-header">
+                <h2 className="section-header__title">Dose History</h2>
+                <span className="section-header__count">Last 30 days</span>
+              </div>
               {historyLoading ? (
-                <p style={{ color: "var(--color-muted)" }}>Loading...</p>
+                <p style={{ color: "var(--color-muted)", padding: "1rem" }}>Loading...</p>
               ) : history.length === 0 ? (
-                <p style={{ color: "var(--color-muted)" }}>No logged doses yet.</p>
+                <div className="empty-state">
+                  <div className="empty-state__icon">&#128203;</div>
+                  <div className="empty-state__title">No history yet</div>
+                  <div className="empty-state__desc">
+                    Logged doses will appear here as you track them.
+                  </div>
+                </div>
               ) : (
                 (() => {
                   const grouped = {};
@@ -258,19 +278,26 @@ export default function PatientDashboard() {
                     grouped[entry.date].push(entry);
                   }
                   return Object.entries(grouped).map(([date, entries]) => (
-                    <div key={date} style={{ marginBottom: "1rem" }}>
-                      <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-muted)", marginBottom: "0.4rem" }}>
-                        {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                      </p>
+                    <div key={date} className="history-date-group">
+                      <div className="history-date-label">
+                        {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
                       {entries.map((e) => (
-                        <div key={e.log_id} className="history-entry" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.6rem 1rem", marginBottom: "0.35rem" }}>
-                          <div>
-                            <strong>{e.medication_name}</strong>
-                            <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem" }}>{e.dosage}</span>
-                            <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem", fontSize: "0.8rem" }}>scheduled {e.scheduled_time}</span>
+                        <div key={e.log_id} className="history-entry">
+                          <div className="history-entry__info">
+                            <span className="history-entry__name">{e.medication_name}</span>
+                            <span className="history-entry__dosage">{e.dosage}</span>
+                            <span className="history-entry__time">at {e.scheduled_time}</span>
                           </div>
-                          <span style={{ fontSize: "0.875rem", fontWeight: 500, color: statusColors[e.status] || "var(--color-muted)", textTransform: "capitalize" }}>
-                            {e.status}
+                          <span className={`dose-card__status dose-card__status--${e.status}`}>
+                            {e.status === "taken" && "\u2713 "}
+                            {e.status === "skipped" && "\u2717 "}
+                            {e.status === "snoozed" && "\u23F0 "}
+                            {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                           </span>
                         </div>
                       ))}
@@ -282,73 +309,80 @@ export default function PatientDashboard() {
           )}
 
           <section>
-            <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>My Medications</h2>
+            <div className="section-header">
+              <h2 className="section-header__title">My Medications</h2>
+              {medications.length > 0 && (
+                <span className="section-header__count">{medications.length}</span>
+              )}
+            </div>
             {medications.length === 0 ? (
-              <p style={{ color: "var(--color-muted)", fontSize: "0.875rem" }}>No medications added yet. Use the form to add your first medication.</p>
-            ) : (
-              medications.map((med) => (
-                <div key={med.medication_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.75rem 1rem", marginBottom: "0.5rem" }}>
-                  <div>
-                    <strong>{med.name}</strong>
-                    <span style={{ color: "var(--color-muted)", marginLeft: "0.5rem" }}>{med.dosage}</span>
-                    {med.schedules[0] && (
-                      <div style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
-                        {med.schedules[0].time_of_day} · {med.schedules[0].days_of_week}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button
-                      onClick={() => setEditingMed(med)}
-                      style={{ background: "none", border: "none", color: "var(--color-primary)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(med)}
-                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
-                    >
-                      Delete
-                    </button>
-                  </div>
+              <div className="empty-state">
+                <div className="empty-state__icon">&#128138;</div>
+                <div className="empty-state__title">No medications yet</div>
+                <div className="empty-state__desc">
+                  Use the form on the right to add your first medication.
                 </div>
-              ))
+              </div>
+            ) : (
+              <div className="med-list">
+                {medications.map((med) => (
+                  <div key={med.medication_id} className="med-item">
+                    <div className="med-item__info">
+                      <div>
+                        <span className="med-item__name">{med.name}</span>
+                        <span className="med-item__dosage">{med.dosage}</span>
+                      </div>
+                      {med.schedules?.[0] && (
+                        <div className="med-item__schedule">
+                          {med.schedules[0].time_of_day} &middot; {med.schedules[0].days_of_week}
+                        </div>
+                      )}
+                    </div>
+                    <div className="med-item__actions">
+                      <button className="med-action med-action--edit" onClick={() => setEditingMed(med)}>
+                        Edit
+                      </button>
+                      <button className="med-action med-action--delete" onClick={() => handleDelete(med)}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </section>
+        </main>
 
-          <div>
-            <button
-              onClick={handleInvite}
-              disabled={inviteLoading}
-              style={{ alignSelf: "flex-start", background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-primary)", fontWeight: 500, cursor: "pointer" }}
-            >
+        <aside className="dashboard-sidebar">
+          <MedicationForm onAdded={refresh} editing={editingMed} onDone={() => setEditingMed(null)} />
+
+          <div className="invite-section">
+            <div className="invite-section__title">Caregiver Access</div>
+            <button className="invite-btn" onClick={handleInvite} disabled={inviteLoading}>
               {inviteLoading ? "Generating..." : "Invite Caregiver"}
             </button>
             {inviteError && (
-              <p style={{ color: "var(--color-danger)", fontSize: "0.8rem", marginTop: "0.5rem" }}>{inviteError}</p>
+              <p style={{ color: "var(--color-danger)", fontSize: "0.8125rem", marginTop: "0.5rem" }}>{inviteError}</p>
             )}
             {inviteCode && (
-              <div style={{ marginTop: "0.75rem", padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
-                <p style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginBottom: "0.5rem" }}>Share this code with your caregiver:</p>
-                <p style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "0.15em", fontFamily: "monospace" }}>{inviteCode}</p>
+              <div className="invite-code-box">
+                <div className="invite-code-box__label">Share this code with your caregiver</div>
+                <div className="invite-code-box__code">{inviteCode}</div>
               </div>
             )}
             {caregivers.length > 0 && (
-              <div style={{ marginTop: "0.75rem" }}>
-                <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-muted)", marginBottom: "0.4rem" }}>Linked Caregivers</p>
+              <div className="caregiver-list">
+                <div className="caregiver-list__title">Linked Caregivers</div>
                 {caregivers.map((cg) => (
-                  <div key={cg.link_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "0.5rem 0.75rem", marginBottom: "0.35rem" }}>
-                    <div>
-                      <span style={{ fontSize: "0.875rem" }}>{cg.full_name}</span>
-                      {cg.email && <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", marginLeft: "0.4rem" }}>{cg.email}</span>}
+                  <div key={cg.link_id} className="caregiver-item">
+                    <div className="caregiver-item__info">
+                      <span className="caregiver-item__name">{cg.full_name}</span>
+                      {cg.email && <span className="caregiver-item__email">{cg.email}</span>}
                       {cg.status === "pending" && (
-                        <span style={{ fontSize: "0.7rem", color: "var(--color-warning)", marginLeft: "0.4rem" }}>pending</span>
+                        <span className="caregiver-item__badge">pending</span>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRevoke(cg)}
-                      style={{ background: "none", border: "none", color: "var(--color-danger)", fontSize: "0.75rem", fontWeight: 500, cursor: "pointer", minHeight: "auto", padding: "0.25rem 0.5rem" }}
-                    >
+                    <button className="caregiver-item__revoke" onClick={() => handleRevoke(cg)}>
                       Revoke
                     </button>
                   </div>
@@ -356,8 +390,7 @@ export default function PatientDashboard() {
               </div>
             )}
           </div>
-        </div>
-        <aside><MedicationForm onAdded={refresh} editing={editingMed} onDone={() => setEditingMed(null)} /></aside>
+        </aside>
       </div>
     </div>
   );

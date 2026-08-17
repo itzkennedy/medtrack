@@ -80,32 +80,56 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <h3 style={{ fontSize: "1rem" }}>{editing ? "Edit Medication" : "Add Medication"}</h3>
-      {error && (
-        <p style={{ color: "var(--color-danger)", fontSize: "0.8rem" }}>{error}</p>
-      )}
-      <input name="name" placeholder="Medication name" value={form.name} onChange={handleChange} required />
-      <input name="dosage" placeholder="Dosage (e.g. 500mg)" value={form.dosage} onChange={handleChange} required />
-      <label style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>Start date</label>
-      <input name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
-      <label style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>End date (optional)</label>
-      <input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
-      <label style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>Time of day</label>
-      <input name="time" type="time" value={form.time} onChange={handleChange} required />
-      <label style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>Days of week</label>
-      <select name="days" value={form.days} onChange={handleChange}>
-        <option value="DAILY">Daily</option>
-        <option value="MON,WED,FRI">Mon / Wed / Fri</option>
-        <option value="TUE,THU,SAT">Tue / Thu / Sat</option>
-        <option value="WEEKDAYS">Weekdays</option>
-      </select>
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button type="submit" style={{ background: "var(--color-primary)", color: "#fff", flex: 1 }} disabled={loading}>
-          {loading ? "Saving..." : editing ? "Update Medication" : "Add Medication"}
+    <form className="med-form" onSubmit={handleSubmit}>
+      <div className="med-form__title">
+        {editing ? "\u270F Edit Medication" : "\u2795 Add Medication"}
+      </div>
+
+      {error && <div className="med-form__error">{error}</div>}
+
+      <div className="med-form__fields">
+        <div className="med-form__field">
+          <label className="med-form__label">Name</label>
+          <input name="name" placeholder="e.g. Ibuprofen" value={form.name} onChange={handleChange} required />
+        </div>
+
+        <div className="med-form__field">
+          <label className="med-form__label">Dosage</label>
+          <input name="dosage" placeholder="e.g. 200mg" value={form.dosage} onChange={handleChange} required />
+        </div>
+
+        <div className="med-form__field">
+          <label className="med-form__label">Start date</label>
+          <input name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
+        </div>
+
+        <div className="med-form__field">
+          <label className="med-form__label">End date (optional)</label>
+          <input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
+        </div>
+
+        <div className="med-form__field">
+          <label className="med-form__label">Time of day</label>
+          <input name="time" type="time" value={form.time} onChange={handleChange} required />
+        </div>
+
+        <div className="med-form__field">
+          <label className="med-form__label">Days of week</label>
+          <select name="days" value={form.days} onChange={handleChange}>
+            <option value="DAILY">Daily</option>
+            <option value="MON,WED,FRI">Mon / Wed / Fri</option>
+            <option value="TUE,THU,SAT">Tue / Thu / Sat</option>
+            <option value="WEEKDAYS">Weekdays</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="med-form__actions">
+        <button className="med-form__submit" type="submit" disabled={loading}>
+          {loading ? "Saving..." : editing ? "Update" : "Add Medication"}
         </button>
         {editing && (
-          <button type="button" onClick={onDone} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
+          <button className="med-form__cancel" type="button" onClick={onDone}>
             Cancel
           </button>
         )}
