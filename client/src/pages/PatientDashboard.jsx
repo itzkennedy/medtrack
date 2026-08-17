@@ -351,12 +351,8 @@ export default function PatientDashboard() {
               </div>
             )}
           </section>
-        </main>
 
-        <aside className="dashboard-sidebar">
-          <MedicationForm onAdded={refresh} editing={editingMed} onDone={() => setEditingMed(null)} />
-
-          <div className="invite-section">
+          <section className="invite-section">
             <div className="invite-section__title">Caregiver Access</div>
             <button className="invite-btn" onClick={handleInvite} disabled={inviteLoading}>
               {inviteLoading ? "Generating..." : "Invite Caregiver"}
@@ -389,7 +385,11 @@ export default function PatientDashboard() {
                 ))}
               </div>
             )}
-          </div>
+          </section>
+        </main>
+
+        <aside className="dashboard-sidebar">
+          <MedicationForm onAdded={refresh} editing={editingMed} onDone={() => setEditingMed(null)} />
         </aside>
       </div>
     </div>
