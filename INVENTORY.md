@@ -1,6 +1,6 @@
 # MedTrack — Complete Codebase Inventory
 
-> Generated Sprint 5. Factual snapshot of the application as it exists.
+> Updated Sprint 5 (post-redesign). Factual snapshot of the application as it exists.
 
 ---
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | `/login` | Login | Guest only (redirects to dashboard if logged in) | Email/password form, "Sign In" button, link to register |
 | `/register` | Register | Guest only | Full name, email, password, role selector (Patient/Caregiver), "Create Account" button, link to login |
-| `/dashboard` | Patient Dashboard | Patient only (caregiver redirected to `/caregiver`) | Two-column grid: left = Today doses + Adherence + My Medications + Invite Caregiver + Linked Caregivers; right sidebar = MedicationForm. Today/History toggle tabs. |
+| `/dashboard` | Patient Dashboard | Patient only (caregiver redirected to `/caregiver`) | Two-column grid: left = Today/History tabs → DoseCards + Adherence ring + My Medications + Caregiver Access (invite code + linked list); right sidebar = Add/Edit Medication form only. |
 | `/caregiver` | Caregiver Dashboard | Caregiver only (patient redirected to `/dashboard`) | Single-column centered layout. If no patients: invite code input form. If patients linked: patient selector dropdown (if multiple), Today/History toggle tabs, read-only DoseCards, Adherence stats. Header shows READ-ONLY badge. |
 | `*` | Catch-all | Any | Redirects to `/login` |
 
@@ -38,7 +38,7 @@
 - Edit medication: clicking Edit pre-fills the form, submits to PUT endpoint
 - Delete medication: confirms via `window.confirm`, calls DELETE endpoint, shows toast
 - Medications displayed in "My Medications" section with name, dosage, schedule info, Edit/Delete buttons
-- Empty state: "No medications added yet" message when no medications exist
+- Empty state: "No medications added yet" message with icon when no medications exist
 - One schedule per medication (time_of_day + days_of_week)
 
 ### Scheduling
@@ -47,33 +47,36 @@
 - `GET /api/schedules` routes exist as stubs (return 501 "Not implemented")
 
 ### Dose Logging
-- Three statuses: Taken (green), Skipped (red), Snoozed (amber)
-- Patient sees action buttons on unlogged doses, colored status text on logged doses
-- Caregiver sees read-only view — never sees action buttons, shows "Not yet logged" or status text
+- Three statuses: Taken (green filled badge), Skipped (red filled badge), Snoozed (amber filled badge)
+- Patient sees action buttons on unlogged doses: "Taken" (primary, filled green), "Snooze" (secondary, outlined amber), "Skip" (secondary, outlined red)
+- Caregiver sees read-only view — never sees action buttons, shows "Pending" or status badge
 - After logging, toast shows "Dose marked as {status}"
-- Overdue indicator: red left border + red tint + "Overdue" label for past-time unlogged doses
-- Due-soon indicator: yellow left border + amber tint + "Due soon" label for doses within 60 minutes
+- Overdue indicator: red left border + red gradient background + pulsing dot + filled red "OVERDUE" badge + red time badge
+- Due-soon indicator: amber left border + yellow gradient background + amber "DUE SOON" badge
+- Pending cards: blue left border + subtle blue gradient background
+- Taken cards: green left border + subtle green gradient
+- Skipped/Snoozed cards: colored left border + opacity reduction
 - Duplicate logging is allowed (creates additional adherence_log rows; UI shows most recent)
 
 ### Adherence Tracking & Statistics
-- Three metrics: Last 7 days %, Last 30 days %, Current streak (consecutive all-taken days)
+- Three metrics: Last 7 days % (SVG circular progress ring), Last 30 days %, Current streak (fire icon)
 - Calculated server-side by iterating backwards from today
 - Streak breaks if any scheduled dose on a day is not "taken"
 - Days with no active schedules don't break streak
-- AdherenceStat component shows "--" while data is loading
+- Progress ring color changes: red (<50%), amber (50-79%), green (80%+)
 - Stats refresh automatically after logging a dose
 
 ### Dose History
 - Toggle between Today and History views via tab buttons
 - History shows last 30 days of logged doses grouped by date
 - Each date group has a formatted header (e.g. "Mon, Aug 11")
-- Each entry shows medication name, dosage, scheduled time, status (colored)
+- Each entry shows medication name, dosage, scheduled time, status (filled badge)
 - History fetched on-demand when switching to History tab
 - Read-only for both patient and caregiver
 
 ### Caregiver Features
 - Patient generates 8-char hex invite code via "Invite Caregiver" button
-- Code displayed in monospace font for easy sharing
+- Code displayed in monospace font in a styled code box
 - Caregiver enters code on their dashboard to link
 - Self-linking prevention (can't link to own patient account)
 - Multiple patients supported — dropdown selector shown when caregiver is linked to 2+ patients
@@ -85,7 +88,7 @@
 - READ-ONLY badge displayed in caregiver header
 
 ### Other Features
-- Toast notification system: fixed-position bottom-center, auto-dismisses after 2 seconds, success (green) and error (red) variants
+- Toast notification system: fixed-position bottom-center, white text on colored background, animates in/out, auto-dismisses after 2 seconds
 - Error banner with Retry button on fetch failures (PatientDashboard)
 - Fetch error handling on caregiver revoked access (shows error, clears patient data)
 - Loading state: "Loading..." text shown during initial data fetch
@@ -95,87 +98,125 @@
 
 ## 3. UI / UX & Design
 
+### Design System
+- All styles defined in CSS files with CSS custom properties (variables)
+- `index.css`: Global reset, design tokens (colors, shadows, spacing, radius), button/input globals, toast animation
+- `Dashboard.css`: All dashboard component styles with BEM naming convention
+- Zero inline styles across all dashboard components — everything uses CSS classes
+- Shadows: xs, sm, md, lg, card (5 levels)
+- Spacing: xs (0.25rem), sm (0.5rem), md (0.75rem), lg (1rem), xl (1.5rem), 2xl (2rem)
+- Border radius: sm (6px), default (10px), lg (14px), full (9999px)
+
 ### Overall Layout Structure
-- **Patient Dashboard**: Two-column CSS grid (`1fr 320px`) inside a centered container (`max-width: 1100px`). Left column contains all content sections stacked vertically. Right column is a fixed-width sidebar containing the MedicationForm.
+- **Patient Dashboard**: Two-column CSS grid (`1fr 340px`) inside a centered container (`max-width: 1140px`). Left column = `dashboard-main` (all content sections). Right column = `dashboard-sidebar` (MedicationForm only, sticky at top: 80px).
 - **Caregiver Dashboard**: Single-column centered layout (`max-width: 800px`), all content stacked vertically.
 - **Login/Register**: Centered form (`max-width: 400px`, `margin: 4rem auto`), full-width on mobile.
 
 ### Header
-- Full-width bar with `background: var(--color-primary)` (#2563eb blue), white text
-- Left: MedTrack logo image (`logo.png`, 36px height)
-- Right: User full name + Logout button (plain text, no background)
-- Caregiver header additionally shows a "READ-ONLY" badge (semi-transparent white background, uppercase, small font)
+- Sticky header (`position: sticky, top: 0, z-index: 100`) with white background and subtle bottom border
+- Left: MedTrack logo image (`logo.png`, 32px height)
+- Right: User full name (muted text) + Logout button (plain text, hover turns red)
+- Caregiver header additionally shows a "READ-ONLY" badge (light blue background, blue text, uppercase, small font, pill shape)
 
 ### Color Scheme and Visual Style
-- Clean, minimal, professional design using Tailwind-inspired CSS variables
+- Clean, calm, trustworthy design using CSS custom properties
 - Primary: `#2563eb` (blue)
 - Success: `#16a34a` (green)
 - Warning: `#f59e0b` (amber)
 - Danger: `#dc2626` (red)
-- Background: `#f8fafc` (very light gray)
+- Background: `#f1f5f9` (light gray-blue)
 - Surface/Cards: `#ffffff` (white)
-- Text: `#1e293b` (dark slate)
+- Text: `#0f172a` (dark)
+- Secondary text: `#334155`
 - Muted text: `#64748b` (gray)
 - Borders: `#e2e8f0` (light gray)
-- Border radius: `8px` on all elements
 - System font stack (-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, etc.)
 
 ### Component Placement (Patient Dashboard)
-- **Top**: Tab buttons (Today / History)
-- **Below tabs**: Today section with DoseCards, then Adherence section
-- **Below adherence**: My Medications section with edit/delete buttons per med
-- **Below medications**: Invite Caregiver button + code display + Linked Caregivers list
-- **Right sidebar**: MedicationForm (Add/Edit)
+- **Left column (main)**:
+  - Error banner (if fetch fails)
+  - View tabs (Today / History) — pill-style toggle in a white container
+  - Today view: Section header ("Today's Doses" + count) → DoseCards → Section header ("Adherence") → AdherenceStat
+  - History view: Section header ("Dose History" + "Last 30 days") → grouped history entries
+  - "My Medications" section with count badge, med list items with Edit/Delete
+  - "Caregiver Access" section with Invite button, code box, Linked Caregivers list
+- **Right column (sidebar)**:
+  - MedicationForm (Add/Edit) — sticky positioned
 
 ### DoseCard Design
-- White card with 1px border, 8px radius, horizontal flex layout
-- Left side: bold medication name, dosage in muted text, time in small muted text, urgency label if applicable
-- Right side: either action buttons (Taken/Skipped/Snooze) or status text
-- Action buttons: colored backgrounds (green/red/amber), white text, no border, 8px radius
-- Urgency states: overdue adds red left border + light red background; due-soon adds yellow left border + light yellow background
-- Caregiver read-only mode: shows "Not yet logged" or status as plain muted text, no buttons
+- White card with 1px border, 14px radius, generous padding (1rem 1.5rem)
+- **4px colored left border** as primary state indicator:
+  - Pending: blue (`var(--color-primary)`)
+  - Overdue: red (`var(--color-danger)`)
+  - Due-soon: amber (`var(--color-warning)`)
+  - Taken: green (`var(--color-success)`)
+  - Skipped/Snoozed: respective color + opacity reduction
+- **Gradient backgrounds** per state (subtle, fades to white)
+- **Name**: `1.125rem`, bold (700), tight letter-spacing — top of card
+- **Dosage**: `0.8125rem`, muted, own line below name
+- **Meta row**: time badge + urgency badge on same line
+  - Time: `0.9375rem`, bold, clock icon, muted pill background. Overdue time turns red.
+  - Overdue urgency: filled red badge with white text + pulsing dot animation
+  - Due-soon urgency: amber badge with dark text
+- **Status badge** (right side): filled background, white/dark text, `box-shadow` for lift
+  - Taken: green fill, white text
+  - Skipped: red fill, white text
+  - Snoozed: amber fill, dark text
+  - Pending: light muted background
+- **Action buttons** (when pending): separated by a subtle top border
+  - "Taken": primary — filled green, `box-shadow`, wider visual weight
+  - "Snooze": secondary — outlined amber, white background
+  - "Skip": secondary — outlined red, white background
+- **Hover**: subtle lift (`translateY(-1px)`) + deeper shadow
+- **Responsive (mobile)**: body stacks vertically, status badge stays top-right
 
 ### MedicationForm Design
-- White card with border, 8px radius, 1.25rem padding
-- Vertical stack with 0.75rem gap between fields
-- Title: "Add Medication" or "Edit Medication"
+- White card with border, 14px radius, 1.5rem padding, sticky in sidebar
+- Title with icon: "Add Medication" (plus icon) or "Edit Medication" (pencil icon)
+- Labeled fields: uppercase tiny labels (0.75rem, muted, letter-spacing) above each input
 - Fields: text inputs for name/dosage, date inputs for start/end date, time input, dropdown for days
-- Submit button: blue background, white text, full width
-- Cancel button (edit mode only): white with border, next to submit
-- Error messages shown in red above fields
+- Submit button: blue fill, white text, full width
+- Cancel button (edit mode only): light background with border, next to submit
+- Error messages shown in red banner above fields
 
 ### Adherence Section
-- Flexbox row with `gap: 2rem`, wrapping on mobile
-- Three stat blocks side by side: "Last 7 days", "Last 30 days", "Current streak"
-- Large numbers (`1.75rem`, bold) with small muted labels below
-- Shows "--" when data hasn't loaded
+- White card with border, 14px radius, 1.5rem padding
+- CSS Grid layout: progress ring (left) + 30-day stat (center) + streak (right)
+- **SVG circular progress ring** (100x100): shows 7-day percentage
+  - Ring background: light gray stroke
+  - Ring fill: color changes based on value (red <50%, amber 50-79%, green 80%+)
+  - Center label: large percentage number + "7-day" text
+- **30-day stat**: large bold number + "Last 30 days" label
+- **Streak**: fire icon, large bold number, "Day streak" label, warm orange/amber background card
+- Responsive: stacks to single column on mobile, ring centers
 
 ### Empty States
-- Doses: "No scheduled doses for today." (muted text)
-- History: "No logged doses yet." (muted text)
-- My Medications: "No medications added yet. Use the form to add your first medication." (muted text)
-- Caregiver no patients: Full card with "Link to a Patient" heading, description, and invite code input form
-- Adherence with no data: "--" for all three stats
+- Styled card with dashed border, centered layout
+- Large emoji icon (2.5rem, slightly transparent)
+- Title: bold, secondary text color
+- Description: muted text, max-width 300px, centered
+- Action button (when applicable): blue fill pill button
+- Used for: no doses today ("All caught up!"), no history, no medications, caregiver no patients
 
 ### Toast / Notification System
-- Fixed position bottom-center, white text on colored background
-- Animates in (slide up + fade in, 0.2s) and out (fade, 0.3s after 1.7s delay)
+- Fixed position bottom-center, white text on colored background (green success, red error)
+- Rounded pill shape (`border-radius: 9999px`)
+- Animates in (slide up + fade in, 0.25s) and out (fade, 0.3s after 1.7s delay)
 - Auto-dismisses after 2 seconds
 - Used for: dose logged, medication deleted, access revoked, errors
 
 ### Mobile Responsiveness
-- **768px breakpoint**: Patient dashboard grid collapses from 2 columns to 1 column, padding reduces
-- **480px breakpoint**: Header wraps gracefully, dose action buttons shrink, history entries stack vertically, touch targets maintained at minimum 36-44px
-- Button min-height: 44px globally (accessibility), 36px on mobile dose actions
-- Input min-height: 44px globally
-- Note: The `.dose-actions` and `.history-entry` CSS classes are defined in index.css but DoseCard and history entries use inline styles — the media queries targeting these classes may not fully apply without className additions
+- **900px breakpoint**: Dashboard grid collapses from 2 columns to 1 column. MedicationForm moves out of sticky sidebar. Adherence grid adjusts to 2-column then 1-column layout.
+- **600px breakpoint**: Header compacts, padding reduces throughout. Dose cards stack vertically (name/dosage/meta on top, status badge top-right, action buttons wrap). History entries stack vertically. View tabs go full-width. Touch targets maintained at 44px minimum.
+- All inputs and buttons have `min-height: 44px` for accessibility
 
 ### Overall Visual Quality
-- Clean, minimal, professional — typical of a well-structured student capstone
-- Consistent spacing, colors, and border radius throughout
-- No custom fonts, icons, or illustrations beyond the logo
+- Clean, calm, trustworthy — professional but warm feel
+- Consistent spacing, colors, and border radius throughout via CSS variables
+- BEM naming convention across all component styles
+- No custom fonts, icons, or illustrations beyond the logo and emoji
 - No skeleton loading animations — just "Loading..." text
-- Inline styles used extensively (not CSS modules or styled-components)
+- All styling via CSS classes (zero inline styles in dashboard components)
 
 ---
 
@@ -189,11 +230,11 @@
 | `AuthProvider` | `AuthContext.jsx` | Auth state management, token persistence, login/register/logout functions |
 | `Login` | `Login.jsx` | Email/password login form, error display, redirect by role |
 | `Register` | `Register.jsx` | Registration form with role selector, auto-login after register |
-| `PatientDashboard` | `PatientDashboard.jsx` | Main patient view: doses, adherence, medications, history, invite, caregivers, toast |
-| `CaregiverDashboard` | `CaregiverDashboard.jsx` | Caregiver view: patient selector, read-only doses/adherence/history, invite accept |
-| `DoseCard` | `DoseCard.jsx` | Single dose display: medication info, action buttons or status text, urgency indicators |
-| `MedicationForm` | `MedicationForm.jsx` | Add/Edit medication form with validation, pre-fill for edit mode |
-| `AdherenceStat` | `AdherenceStat.jsx` | Three-stat display (7-day, 30-day, streak) with "--" fallback |
+| `PatientDashboard` | `PatientDashboard.jsx` | Main patient view: two-column layout, doses, adherence, medications, history, caregiver access, toast |
+| `CaregiverDashboard` | `CaregiverDashboard.jsx` | Caregiver view: single-column, patient selector, read-only doses/adherence/history, invite accept |
+| `DoseCard` | `DoseCard.jsx` | Single dose display: separated name/dosage, prominent time, state-colored left border, filled status badges, primary/secondary action buttons, urgency indicators with pulse animation |
+| `MedicationForm` | `MedicationForm.jsx` | Add/Edit medication form with labeled fields, validation, sticky sidebar positioning |
+| `AdherenceStat` | `AdherenceStat.jsx` | SVG circular progress ring (7-day), 30-day stat, streak with fire icon |
 
 ---
 
@@ -210,7 +251,6 @@
 
 ### Missing Error Handling
 - `computeUrgency` is duplicated identically in both dashboards (not extracted to a shared utility).
-- The `.dose-actions` and `.history-entry` CSS classes defined in `index.css` for mobile responsiveness are not applied as classNames in the actual JSX — the responsive media queries targeting them won't take effect.
 - No global error boundary for uncaught React errors.
 - Network failures produce generic error messages with no offline detection.
 
@@ -328,7 +368,7 @@
 - React 18.3.1
 - React Router DOM 6.23.1
 - Vite 5.4.11
-- No CSS framework (custom CSS variables + inline styles)
+- Custom CSS with CSS variables, BEM naming, no CSS framework
 
 ### Server
 - Node.js + Express 4.21.0
@@ -343,6 +383,10 @@
 - 5 tables: `user`, `caregiver_link`, `medication`, `schedule`, `adherence_log`
 
 ### Repository
-- GitHub: `https://github.com/itzkenny/medtrack.git`
+- GitHub: `https://github.com/itzkennedy/medtrack.git`
 - Branch: `main`
 - Root: `medtrack/` (nested under `MEDTRACK/`)
+
+### CSS Files
+- `client/src/index.css` — Global reset, design tokens (colors, shadows, spacing, radius), button/input globals, toast styles
+- `client/src/Dashboard.css` — All dashboard and component styles (BEM naming): dose cards, adherence, medications, history, empty states, error banners, responsive breakpoints
