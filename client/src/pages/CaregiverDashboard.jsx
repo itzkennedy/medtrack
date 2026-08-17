@@ -172,7 +172,7 @@ export default function CaregiverDashboard() {
               ) : doses.length === 0 ? (
                 <p style={{ color: "var(--color-muted)" }}>No scheduled doses for today.</p>
               ) : (
-                doses.map((d) => <DoseCard key={d.schedule_id} {...d} />)
+                doses.map((d) => <DoseCard key={d.schedule_id} {...d} readOnly />)
               )}
             </section>
 

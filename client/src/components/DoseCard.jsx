@@ -1,4 +1,4 @@
-export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, onLog }) {
+export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, onLog, readOnly }) {
   const statusColors = {
     pending: "var(--color-border)",
     taken: "var(--color-success)",
@@ -14,7 +14,11 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
         <div style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>{time_of_day}</div>
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        {status ? (
+        {readOnly ? (
+          <span style={{ fontSize: "0.875rem", color: "var(--color-muted)" }}>
+            {status || "Not yet logged"}
+          </span>
+        ) : status ? (
           <span style={{ fontSize: "0.875rem", fontWeight: 500, color: statusColors[status] || "var(--color-muted)", textTransform: "capitalize" }}>
             {status}
           </span>
