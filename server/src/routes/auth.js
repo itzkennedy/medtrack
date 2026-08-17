@@ -2,6 +2,7 @@ const { Router } = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../db.js");
+const { authenticate } = require("../middleware/auth.js");
 
 const router = Router();
 
@@ -84,6 +85,22 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/me", authenticate, async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT user_id, full_name, email, role FROM \"user\" WHERE user_id = $1",
+      [req.user.user_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Get user error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

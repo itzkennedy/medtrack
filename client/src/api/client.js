@@ -1,9 +1,15 @@
 const BASE = "/api";
+const STORAGE_KEY = "medtrack_token";
 
-let token = null;
+let token = localStorage.getItem(STORAGE_KEY) || null;
 
 export function setToken(t) {
   token = t;
+  if (t) {
+    localStorage.setItem(STORAGE_KEY, t);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 export function getToken() {
@@ -29,6 +35,8 @@ export const login = (email, password) =>
 
 export const register = (data) =>
   request("/auth/register", { method: "POST", body: JSON.stringify(data) });
+
+export const getMe = () => request("/auth/me");
 
 export const getMedications = () => request("/medications");
 

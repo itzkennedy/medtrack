@@ -133,7 +133,7 @@ router.get("/adherence", authenticate, requireRole("patient"), async (req, res) 
     }
 
     const { rows: logs } = await db.query(
-      `SELECT al.schedule_id, al.status, al.logged_at::date AS log_date
+      `SELECT al.schedule_id, al.status, al.logged_at::date::text AS log_date
        FROM adherence_log al
        JOIN schedule s ON al.schedule_id = s.schedule_id
        JOIN medication m ON s.medication_id = m.medication_id
