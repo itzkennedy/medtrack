@@ -74,7 +74,7 @@ export default function PatientDashboard() {
   const [caregivers, setCaregivers] = useState([]);
   const [toast, setToast] = useState(null);
   const [copied, setCopied] = useState(false);
-  const { permission, requestPermission } = useReminders(doses);
+  const { permission, requestPermission, stopAlarm } = useReminders(doses);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -148,6 +148,7 @@ export default function PatientDashboard() {
   const handleLogDose = async (scheduleId, status) => {
     try {
       await api.logDose(scheduleId, status);
+      stopAlarm();
       showToast(`Dose marked as ${status}`);
       await refresh();
     } catch (err) {

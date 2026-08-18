@@ -68,7 +68,7 @@ export default function CaregiverDashboard() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
-  const { permission, requestPermission } = useReminders(doses);
+  const { permission, requestPermission, stopAlarm } = useReminders(doses);
 
   const fetchPatients = useCallback(async () => {
     try {

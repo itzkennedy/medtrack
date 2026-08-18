@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-
-const PERMISSION_KEY = "medtrack_notifications";
+import { unlockAudio, playAlarm, stopAlarm } from "./alarm.js";
 
 function parseTimeToday(timeOfDay) {
   const match = timeOfDay.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
@@ -36,10 +35,27 @@ function sendNotification(title, body) {
 
 export default function useReminders(doses) {
   const timersRef = useRef([]);
+  const unlockedRef = useRef(false);
   const [permission, setPermission] = useState(() => {
     if (typeof Notification === "undefined") return "denied";
     return Notification.permission;
   });
+
+  useEffect(() => {
+    if (unlockedRef.current) return;
+    const handler = () => {
+      if (!unlockedRef.current) {
+        unlockedRef.current = true;
+        unlockAudio();
+      }
+    };
+    document.addEventListener("click", handler, { once: true });
+    document.addEventListener("keydown", handler, { once: true });
+    return () => {
+      document.removeEventListener("click", handler);
+      document.removeEventListener("keydown", handler);
+    };
+  }, []);
 
   const scheduleTimers = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -59,6 +75,7 @@ export default function useReminders(doses) {
           "Time to take your medication",
           `Take ${dose.medication_name} — ${dose.dosage}`
         );
+        playAlarm();
       }, delay);
       timersRef.current.push(timerId);
     }
@@ -90,5 +107,5 @@ export default function useReminders(doses) {
     return result;
   }, []);
 
-  return { permission, requestPermission };
+  return { permission, requestPermission, stopAlarm };
 }
