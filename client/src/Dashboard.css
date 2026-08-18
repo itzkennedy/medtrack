@@ -255,6 +255,13 @@
   border-color: #fde68a;
 }
 
+/* ── Not Yet Available ── */
+.dose-card--not-yet {
+  border-left-color: var(--color-border);
+  background: linear-gradient(135deg, #f8f9fa 0%, var(--color-surface) 50%);
+  opacity: 0.75;
+}
+
 /* ── Logged states ── */
 .dose-card--taken {
   border-left-color: var(--color-success);
@@ -358,6 +365,14 @@
   background: #fde68a;
 }
 
+.dose-card__urgency--not-yet {
+  color: var(--color-muted);
+  background: var(--color-border-light);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 /* ── Pulse dot for overdue ── */
 .dose-card__pulse {
   width: 7px;
@@ -413,6 +428,21 @@
   background: var(--color-border-light);
 }
 
+.dose-card__status--not-yet {
+  color: var(--color-muted);
+  background: var(--color-border-light);
+  font-size: 0.75rem;
+}
+
+.dose-card__late-badge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  opacity: 0.8;
+  margin-left: 0.35rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 /* ── Action buttons ── */
 .dose-card__actions {
   display: flex;
@@ -420,6 +450,22 @@
   margin-top: var(--space-lg);
   padding-top: var(--space-md);
   border-top: 1px solid var(--color-border-light);
+}
+
+.dose-card__locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  cursor: not-allowed;
 }
 
 .dose-btn {
@@ -928,6 +974,142 @@
 
 .med-form__cancel:hover {
   background: var(--color-border);
+}
+
+/* ── Day Picker ── */
+.day-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.day-picker__quick-select {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.day-quick-btn {
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  min-height: 32px;
+  transition: all 0.15s ease;
+}
+
+.day-quick-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+.day-quick-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.day-quick-btn--active:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.day-picker__grid {
+  display: flex;
+  gap: 4px;
+}
+
+.day-toggle {
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  min-height: 36px;
+  transition: all 0.15s ease;
+}
+
+.day-toggle:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+.day-toggle--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.day-toggle--active:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+/* ── Notification Toggle ── */
+.notification-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.notification-bar__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.notification-bar__info {
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.notification-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--color-border);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  min-height: auto;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.notification-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
+}
+
+.notification-toggle--on {
+  background: var(--color-primary);
+}
+
+.notification-toggle--on::after {
+  transform: translateX(18px);
 }
 
 /* ── Responsive ── */

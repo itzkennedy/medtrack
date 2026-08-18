@@ -1,6 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Pencil, Plus } from "lucide-react";
 import * as api from "../api/client.js";
+
+const DAY_OPTIONS = [
+  { abbr: "MON", label: "Mon" },
+  { abbr: "TUE", label: "Tue" },
+  { abbr: "WED", label: "Wed" },
+  { abbr: "THU", label: "Thu" },
+  { abbr: "FRI", label: "Fri" },
+  { abbr: "SAT", label: "Sat" },
+  { abbr: "SUN", label: "Sun" },
+];
+
+const ALL_DAYS = DAY_OPTIONS.map((d) => d.abbr);
+const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI"];
+
+function daysStringToArray(daysStr) {
+  if (!daysStr || daysStr === "DAILY") return [...ALL_DAYS];
+  if (daysStr === "WEEKDAYS") return [...WEEKDAYS];
+  return daysStr.split(",").filter((d) => ALL_DAYS.includes(d));
+}
+
+function daysArrayToString(arr) {
+  if (arr.length === 7) return "DAILY";
+  if (arr.length === 5 && WEEKDAYS.every((d) => arr.includes(d))) return "WEEKDAYS";
+  return arr.join(",");
+}
 
 export default function MedicationForm({ onAdded, editing, onDone }) {
   const [form, setForm] = useState({
@@ -9,7 +34,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
     startDate: "",
     endDate: "",
     time: "",
-    days: "DAILY",
+    days: [...ALL_DAYS],
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,10 +50,22 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
         startDate: editing.start_date?.slice(0, 10) || "",
         endDate: editing.end_date?.slice(0, 10) || "",
         time,
-        days: schedule?.days_of_week || "DAILY",
+        days: daysStringToArray(schedule?.days_of_week || "DAILY"),
       });
     }
   }, [editing]);
+
+  const toggleDay = useCallback((abbr) => {
+    setForm((prev) => {
+      const has = prev.days.includes(abbr);
+      const next = has ? prev.days.filter((d) => d !== abbr) : [...prev.days, abbr];
+      return { ...prev, days: next };
+    });
+  }, []);
+
+  const setQuickSelect = useCallback((preset) => {
+    setForm((prev) => ({ ...prev, days: [...preset] }));
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -39,6 +76,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
     if (!form.dosage.trim()) return "Dosage is required";
     if (!form.startDate) return "Start date is required";
     if (!form.time) return "Time of day is required";
+    if (form.days.length === 0) return "Select at least one day";
     if (form.endDate && form.startDate && form.endDate < form.startDate) {
       return "End date must be after start date";
     }
@@ -61,7 +99,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
         start_date: form.startDate,
         end_date: form.endDate || null,
         time_of_day: form.time,
-        days_of_week: form.days,
+        days_of_week: daysArrayToString(form.days),
       };
       if (editing) {
         await api.updateMedication(editing.medication_id, payload);
@@ -69,7 +107,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
         await api.addMedication(payload);
       }
       if (!editing) {
-        setForm({ name: "", dosage: "", startDate: "", endDate: "", time: "", days: "DAILY" });
+        setForm({ name: "", dosage: "", startDate: "", endDate: "", time: "", days: [...ALL_DAYS] });
       }
       onAdded?.();
       onDone?.();
@@ -116,12 +154,36 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
 
         <div className="med-form__field">
           <label className="med-form__label">Days of week</label>
-          <select name="days" value={form.days} onChange={handleChange}>
-            <option value="DAILY">Daily</option>
-            <option value="MON,WED,FRI">Mon / Wed / Fri</option>
-            <option value="TUE,THU,SAT">Tue / Thu / Sat</option>
-            <option value="WEEKDAYS">Weekdays</option>
-          </select>
+          <div className="day-picker">
+            <div className="day-picker__quick-select">
+              <button
+                type="button"
+                className={`day-quick-btn ${form.days.length === 7 ? "day-quick-btn--active" : ""}`}
+                onClick={() => setQuickSelect(ALL_DAYS)}
+              >
+                Daily
+              </button>
+              <button
+                type="button"
+                className={`day-quick-btn ${form.days.length === 5 && WEEKDAYS.every((d) => form.days.includes(d)) ? "day-quick-btn--active" : ""}`}
+                onClick={() => setQuickSelect(WEEKDAYS)}
+              >
+                Weekdays
+              </button>
+            </div>
+            <div className="day-picker__grid">
+              {DAY_OPTIONS.map((day) => (
+                <button
+                  key={day.abbr}
+                  type="button"
+                  className={`day-toggle ${form.days.includes(day.abbr) ? "day-toggle--active" : ""}`}
+                  onClick={() => toggleDay(day.abbr)}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

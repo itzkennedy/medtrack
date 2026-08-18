@@ -73,7 +73,7 @@ router.get("/today", authenticate, async (req, res) => {
     let logs = [];
     if (scheduleIds.length > 0) {
       const logResult = await db.query(
-        `SELECT schedule_id, status, log_id
+        `SELECT schedule_id, status, log_id, logged_at
          FROM adherence_log
          WHERE schedule_id = ANY($1::int[]) AND logged_at::date = CURRENT_DATE
          ORDER BY logged_at DESC`,
@@ -102,6 +102,7 @@ router.get("/today", authenticate, async (req, res) => {
         days_of_week: s.days_of_week,
         status: logMap[s.schedule_id]?.status || null,
         log_id: logMap[s.schedule_id]?.log_id || null,
+        logged_at: logMap[s.schedule_id]?.logged_at || null,
       }));
 
     res.json(doses);

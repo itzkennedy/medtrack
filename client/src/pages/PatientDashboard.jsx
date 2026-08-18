@@ -5,7 +5,8 @@ import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
 import MedicationForm from "../components/MedicationForm.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
-import computeUrgency from "../utils/urgency.js";
+import { computeLatenessMinutes } from "../utils/urgency.js";
+import useReminders from "../utils/useReminders.js";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,6 +17,8 @@ import {
   Check,
   X,
   AlarmClock,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "../Dashboard.css";
@@ -71,6 +74,7 @@ export default function PatientDashboard() {
   const [caregivers, setCaregivers] = useState([]);
   const [toast, setToast] = useState(null);
   const [copied, setCopied] = useState(false);
+  const { permission, requestPermission } = useReminders(doses);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -258,6 +262,25 @@ export default function PatientDashboard() {
 
       <div className="dashboard-body">
         <main className="dashboard-main">
+          {typeof Notification !== "undefined" && permission !== "granted" && (
+            <div className="notification-bar">
+              <div>
+                <div className="notification-bar__label">
+                  <Bell size={14} style={{ display: "inline", verticalAlign: "text-bottom", marginRight: 4 }} />
+                  Enable dose reminders
+                </div>
+                <div className="notification-bar__info">
+                  Reminders work while MedTrack is open in your browser. Closing the browser will stop them.
+                </div>
+              </div>
+              <button
+                className="notification-toggle"
+                onClick={requestPermission}
+                aria-label="Enable notifications"
+              />
+            </div>
+          )}
+
           {fetchError && (
             <div className="error-banner">
               <AlertTriangle size={18} className="error-banner__icon" />
@@ -305,7 +328,6 @@ export default function PatientDashboard() {
                       key={d.schedule_id}
                       {...d}
                       onLog={handleLogDose}
-                      urgency={computeUrgency(d.time_of_day, d.status)}
                     />
                   ))
                 )}
@@ -356,21 +378,32 @@ export default function PatientDashboard() {
                           day: "numeric",
                         })}
                       </div>
-                      {entries.map((e) => (
-                        <div key={e.log_id} className="history-entry">
-                          <div className="history-entry__info">
-                            <span className="history-entry__name">{e.medication_name}</span>
-                            <span className="history-entry__dosage">{e.dosage}</span>
-                            <span className="history-entry__time">at {e.scheduled_time}</span>
+                      {entries.map((e) => {
+                        const lateness = computeLatenessMinutes(e.scheduled_time, e.logged_at);
+                        const isLate = lateness > 30;
+                        return (
+                          <div key={e.log_id} className="history-entry">
+                            <div className="history-entry__info">
+                              <span className="history-entry__name">{e.medication_name}</span>
+                              <span className="history-entry__dosage">{e.dosage}</span>
+                              <span className="history-entry__time">at {e.scheduled_time}</span>
+                            </div>
+                            <span className={`dose-card__status dose-card__status--${e.status}`}>
+                              {e.status === "taken" && <Check size={14} />}
+                              {e.status === "skipped" && <X size={14} />}
+                              {e.status === "snoozed" && <AlarmClock size={14} />}
+                              {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
+                              {isLate && (
+                                <span className="dose-card__late-badge">
+                                  {lateness >= 60
+                                    ? `${Math.floor(lateness / 60)}h ${lateness % 60}m late`
+                                    : `${lateness} min late`}
+                                </span>
+                              )}
+                            </span>
                           </div>
-                          <span className={`dose-card__status dose-card__status--${e.status}`}>
-                            {e.status === "taken" && <Check size={14} />}
-                            {e.status === "skipped" && <X size={14} />}
-                            {e.status === "snoozed" && <AlarmClock size={14} />}
-                            {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ));
                 })()
