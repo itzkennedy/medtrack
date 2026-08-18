@@ -6,6 +6,7 @@ import DoseCard from "../components/DoseCard.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import { computeLatenessMinutes } from "../utils/urgency.js";
 import useReminders from "../utils/useReminders.js";
+import useCurrentTime from "../utils/useCurrentTime.js";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -69,6 +70,7 @@ export default function CaregiverDashboard() {
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
   const { permission, requestPermission, stopAlarm } = useReminders(doses);
+  const now = useCurrentTime();
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -326,7 +328,7 @@ export default function CaregiverDashboard() {
                     </div>
                   ) : (
                     doses.map((d) => (
-                      <DoseCard key={d.schedule_id} {...d} readOnly />
+                      <DoseCard key={d.schedule_id} {...d} readOnly now={now} />
                     ))
                   )}
                 </section>

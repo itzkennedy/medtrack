@@ -11,12 +11,11 @@ function parseTimeOfDay(timeOfDay) {
   return { hours, minutes };
 }
 
-export default function computeUrgency(timeOfDay, status) {
+export default function computeUrgency(timeOfDay, status, now = new Date()) {
   if (status) return null;
   const parsed = parseTimeOfDay(timeOfDay);
   if (!parsed) return null;
-  const now = new Date();
-  const scheduled = new Date();
+  const scheduled = new Date(now);
   scheduled.setHours(parsed.hours, parsed.minutes, 0, 0);
   const diffMin = (scheduled - now) / 60000;
   if (diffMin < 0) return "overdue";

@@ -7,6 +7,7 @@ import MedicationForm from "../components/MedicationForm.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import { computeLatenessMinutes } from "../utils/urgency.js";
 import useReminders from "../utils/useReminders.js";
+import useCurrentTime from "../utils/useCurrentTime.js";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -75,6 +76,7 @@ export default function PatientDashboard() {
   const [toast, setToast] = useState(null);
   const [copied, setCopied] = useState(false);
   const { permission, requestPermission, stopAlarm } = useReminders(doses);
+  const now = useCurrentTime();
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -329,6 +331,7 @@ export default function PatientDashboard() {
                       key={d.schedule_id}
                       {...d}
                       onLog={handleLogDose}
+                      now={now}
                     />
                   ))
                 )}

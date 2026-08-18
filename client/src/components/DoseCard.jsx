@@ -7,12 +7,12 @@ const statusIcons = {
   snoozed: <AlarmClock size={14} />,
 };
 
-export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, urgency: urgencyProp }) {
-  const urgency = urgencyProp ?? computeUrgency(time_of_day, status);
+export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, now, urgency: urgencyProp }) {
+  const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now);
   const isNotYet = !status && urgency === "not-yet";
   const isDueSoon = !status && urgency === "due-soon";
   const isLocked = isNotYet || isDueSoon;
-  const latenessMin = status ? computeLatenessMinutes(time_of_day, logged_at) : 0;
+  const latenessMin = status ? computeLatenessMinutes(time_of_day, logged_at, now) : 0;
   const isLate = latenessMin > 30;
 
   const cardClass = [
