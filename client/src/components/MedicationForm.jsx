@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Pencil, Plus } from "lucide-react";
 import * as api from "../api/client.js";
 
 export default function MedicationForm({ onAdded, editing, onDone }) {
@@ -82,7 +83,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
   return (
     <form className="med-form" onSubmit={handleSubmit}>
       <div className="med-form__title">
-        {editing ? "\u270F Edit Medication" : "\u2795 Add Medication"}
+        {editing ? <><Pencil size={16} /> Edit Medication</> : <><Plus size={16} /> Add Medication</>}
       </div>
 
       {error && <div className="med-form__error">{error}</div>}

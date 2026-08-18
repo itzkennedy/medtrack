@@ -1,3 +1,11 @@
+import { Clock, Check, X, AlarmClock, CheckCircle2, XCircle, AlarmClockOff } from "lucide-react";
+
+const statusIcons = {
+  taken: <Check size={14} />,
+  skipped: <X size={14} />,
+  snoozed: <AlarmClock size={14} />,
+};
+
 export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, onLog, readOnly, urgency }) {
   const cardClass = [
     "dose-card",
@@ -19,7 +27,7 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
           <div className="dose-card__dosage">{dosage}</div>
           <div className="dose-card__meta">
             <span className={`dose-card__time ${urgency === "overdue" && !status ? "dose-card__time--overdue" : ""}`}>
-              <span className="dose-card__time-icon">&#128336;</span>
+              <Clock size={14} className="dose-card__time-icon" />
               {time_of_day}
             </span>
             {urgency === "overdue" && !status && (
@@ -43,9 +51,7 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
             </span>
           ) : status ? (
             <span className={`dose-card__status dose-card__status--${status}`}>
-              {status === "taken" && "\u2713 "}
-              {status === "skipped" && "\u2717 "}
-              {status === "snoozed" && "\u23F0 "}
+              {statusIcons[status]}
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </span>
           ) : null}
@@ -55,13 +61,13 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
       {!readOnly && !status && (
         <div className="dose-card__actions">
           <button className="dose-btn dose-btn--taken" onClick={() => onLog(schedule_id, "taken")}>
-            &#10003; Taken
+            <CheckCircle2 size={16} /> Taken
           </button>
           <button className="dose-btn dose-btn--snooze" onClick={() => onLog(schedule_id, "snoozed")}>
-            &#9200; Snooze
+            <AlarmClock size={16} /> Snooze
           </button>
           <button className="dose-btn dose-btn--skip" onClick={() => onLog(schedule_id, "skipped")}>
-            &#10007; Skip
+            <XCircle size={16} /> Skip
           </button>
         </div>
       )}

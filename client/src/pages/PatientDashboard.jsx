@@ -5,29 +5,52 @@ import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
 import MedicationForm from "../components/MedicationForm.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
+import computeUrgency from "../utils/urgency.js";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  PillBottle,
+  Users,
+  Copy,
+  Check,
+  X,
+  AlarmClock,
+} from "lucide-react";
 import logo from "../assets/logo.png";
 import "../Dashboard.css";
 
-function computeUrgency(timeOfDay, status) {
-  if (status) return null;
-  try {
-    const match = timeOfDay.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
-    if (!match) return null;
-    let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const period = match[4];
-    if (period) {
-      if (period.toUpperCase() === "PM" && hours !== 12) hours += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours = 0;
-    }
-    const now = new Date();
-    const scheduled = new Date();
-    scheduled.setHours(hours, minutes, 0, 0);
-    const diffMin = (scheduled - now) / 60000;
-    if (diffMin < 0) return "overdue";
-    if (diffMin <= 60) return "due-soon";
-  } catch {}
-  return null;
+function RingSpinner() {
+  return (
+    <span className="ring-spinner">
+      <svg className="ring-spinner__svg" viewBox="0 0 36 36">
+        <circle className="ring-spinner__track" cx="18" cy="18" r="14" />
+        <circle className="ring-spinner__arc" cx="18" cy="18" r="14" />
+      </svg>
+    </span>
+  );
+}
+
+function SkeletonCard() {
+  return <div className="skeleton skeleton--card" />;
+}
+
+function SkeletonAdherenceCard() {
+  return (
+    <div className="adherence-card skeleton--adherence-card">
+      <div className="skeleton-grid">
+        <div className="skeleton skeleton--ring" />
+        <div>
+          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
+          <div className="skeleton skeleton--line-sm" />
+        </div>
+        <div>
+          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
+          <div className="skeleton skeleton--line-sm" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PatientDashboard() {
@@ -47,6 +70,7 @@ export default function PatientDashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [caregivers, setCaregivers] = useState([]);
   const [toast, setToast] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -141,6 +165,17 @@ export default function PatientDashboard() {
     }
   };
 
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopied(true);
+      showToast("Code copied to clipboard");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      showToast("Failed to copy", "error");
+    }
+  };
+
   const handleDelete = async (med) => {
     if (!window.confirm(`Delete ${med.name}? This will also remove its schedule and dose history.`)) return;
     try {
@@ -169,10 +204,40 @@ export default function PatientDashboard() {
     navigate("/login");
   };
 
+  const todayDateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+
   if (loading) {
     return (
-      <div className="dashboard" style={{ alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "var(--color-muted)" }}>Loading...</p>
+      <div className="dashboard">
+        <header className="dashboard-header">
+          <div className="dashboard-header__left">
+            <img src={logo} alt="MedTrack" style={{ height: "32px" }} />
+          </div>
+          <div className="dashboard-header__right">
+            <button className="dashboard-header__logout" onClick={handleLogout}>Logout</button>
+          </div>
+        </header>
+        <div className="dashboard-body">
+          <main className="dashboard-main">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonAdherenceCard />
+            <SkeletonCard />
+          </main>
+          <aside className="dashboard-sidebar">
+            <div className="med-form">
+              <div className="skeleton" style={{ height: 20, width: 140, marginBottom: 16 }} />
+              <div className="skeleton" style={{ height: 44, marginBottom: 12 }} />
+              <div className="skeleton" style={{ height: 44, marginBottom: 12 }} />
+              <div className="skeleton" style={{ height: 44, marginBottom: 12 }} />
+              <div className="skeleton" style={{ height: 44 }} />
+            </div>
+          </aside>
+        </div>
       </div>
     );
   }
@@ -195,7 +260,7 @@ export default function PatientDashboard() {
         <main className="dashboard-main">
           {fetchError && (
             <div className="error-banner">
-              <span className="error-banner__icon">&#9888;</span>
+              <AlertTriangle size={18} className="error-banner__icon" />
               <span className="error-banner__text">{fetchError}</span>
               <button className="error-banner__retry" onClick={refresh}>Retry</button>
             </div>
@@ -219,6 +284,7 @@ export default function PatientDashboard() {
           {view === "today" && (
             <>
               <section>
+                <div className="today-date">{todayDateStr}</div>
                 <div className="section-header">
                   <h2 className="section-header__title">Today&apos;s Doses</h2>
                   {doses.length > 0 && (
@@ -227,7 +293,7 @@ export default function PatientDashboard() {
                 </div>
                 {doses.length === 0 ? (
                   <div className="empty-state">
-                    <div className="empty-state__icon">&#10003;</div>
+                    <CheckCircle2 size={40} className="empty-state__icon" style={{ color: "var(--color-success)" }} />
                     <div className="empty-state__title">All caught up!</div>
                     <div className="empty-state__desc">
                       No scheduled doses for today. Add a medication to get started.
@@ -261,10 +327,14 @@ export default function PatientDashboard() {
                 <span className="section-header__count">Last 30 days</span>
               </div>
               {historyLoading ? (
-                <p style={{ color: "var(--color-muted)", padding: "1rem" }}>Loading...</p>
+                <div>
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </div>
               ) : history.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state__icon">&#128203;</div>
+                  <ClipboardList size={40} className="empty-state__icon" style={{ color: "var(--color-muted)" }} />
                   <div className="empty-state__title">No history yet</div>
                   <div className="empty-state__desc">
                     Logged doses will appear here as you track them.
@@ -294,9 +364,9 @@ export default function PatientDashboard() {
                             <span className="history-entry__time">at {e.scheduled_time}</span>
                           </div>
                           <span className={`dose-card__status dose-card__status--${e.status}`}>
-                            {e.status === "taken" && "\u2713 "}
-                            {e.status === "skipped" && "\u2717 "}
-                            {e.status === "snoozed" && "\u23F0 "}
+                            {e.status === "taken" && <Check size={14} />}
+                            {e.status === "skipped" && <X size={14} />}
+                            {e.status === "snoozed" && <AlarmClock size={14} />}
                             {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                           </span>
                         </div>
@@ -317,7 +387,7 @@ export default function PatientDashboard() {
             </div>
             {medications.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state__icon">&#128138;</div>
+                <PillBottle size={40} className="empty-state__icon" style={{ color: "var(--color-primary)" }} />
                 <div className="empty-state__title">No medications yet</div>
                 <div className="empty-state__desc">
                   Use the form on the right to add your first medication.
@@ -353,9 +423,16 @@ export default function PatientDashboard() {
           </section>
 
           <section className="invite-section">
-            <div className="invite-section__title">Caregiver Access</div>
+            <div className="invite-section__title">
+              <Users size={16} style={{ display: "inline", verticalAlign: "text-bottom", marginRight: 6 }} />
+              Caregiver Access
+            </div>
             <button className="invite-btn" onClick={handleInvite} disabled={inviteLoading}>
-              {inviteLoading ? "Generating..." : "Invite Caregiver"}
+              {inviteLoading ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <RingSpinner /> Generating...
+                </span>
+              ) : "Invite Caregiver"}
             </button>
             {inviteError && (
               <p style={{ color: "var(--color-danger)", fontSize: "0.8125rem", marginTop: "0.5rem" }}>{inviteError}</p>
@@ -364,6 +441,10 @@ export default function PatientDashboard() {
               <div className="invite-code-box">
                 <div className="invite-code-box__label">Share this code with your caregiver</div>
                 <div className="invite-code-box__code">{inviteCode}</div>
+                <button className="invite-code-copy" onClick={handleCopyCode} type="button">
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  {copied ? "Copied" : "Copy code"}
+                </button>
               </div>
             )}
             {caregivers.length > 0 && (

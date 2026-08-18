@@ -4,29 +4,49 @@ import { useAuth } from "../context/AuthContext.jsx";
 import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
+import computeUrgency from "../utils/urgency.js";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Check,
+  X,
+  AlarmClock,
+} from "lucide-react";
 import logo from "../assets/logo.png";
 import "../Dashboard.css";
 
-function computeUrgency(timeOfDay, status) {
-  if (status) return null;
-  try {
-    const match = timeOfDay.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
-    if (!match) return null;
-    let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const period = match[4];
-    if (period) {
-      if (period.toUpperCase() === "PM" && hours !== 12) hours += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours = 0;
-    }
-    const now = new Date();
-    const scheduled = new Date();
-    scheduled.setHours(hours, minutes, 0, 0);
-    const diffMin = (scheduled - now) / 60000;
-    if (diffMin < 0) return "overdue";
-    if (diffMin <= 60) return "due-soon";
-  } catch {}
-  return null;
+function RingSpinner() {
+  return (
+    <span className="ring-spinner">
+      <svg className="ring-spinner__svg" viewBox="0 0 36 36">
+        <circle className="ring-spinner__track" cx="18" cy="18" r="14" />
+        <circle className="ring-spinner__arc" cx="18" cy="18" r="14" />
+      </svg>
+    </span>
+  );
+}
+
+function SkeletonCard() {
+  return <div className="skeleton skeleton--card" />;
+}
+
+function SkeletonAdherenceCard() {
+  return (
+    <div className="adherence-card skeleton--adherence-card">
+      <div className="skeleton-grid">
+        <div className="skeleton skeleton--ring" />
+        <div>
+          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
+          <div className="skeleton skeleton--line-sm" />
+        </div>
+        <div>
+          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
+          <div className="skeleton skeleton--line-sm" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CaregiverDashboard() {
@@ -152,6 +172,14 @@ export default function CaregiverDashboard() {
 
   const selectedName = patients.find((p) => p.user_id === selectedPatient)?.full_name;
 
+  const todayDateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+
+  const isLoadingDoses = loading && selectedPatient;
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -161,8 +189,8 @@ export default function CaregiverDashboard() {
         <div className="dashboard-header__right">
           <span className="dashboard-header__name">{user?.full_name}</span>
           <span style={{
-            background: "rgba(37,99,235,0.08)",
-            color: "var(--color-primary)",
+            background: "rgba(255,255,255,0.15)",
+            color: "#fff",
             padding: "0.25rem 0.75rem",
             borderRadius: "var(--radius-full)",
             fontSize: "0.6875rem",
@@ -205,10 +233,14 @@ export default function CaregiverDashboard() {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 maxLength={10}
-                style={{ flex: 1, fontFamily: "monospace", fontSize: "1rem", letterSpacing: "0.1em" }}
+                style={{ flex: 1, fontFamily: '"IBM Plex Mono", monospace', fontSize: "1rem", letterSpacing: "0.1em" }}
               />
               <button className="empty-state__action" type="submit" disabled={inviteLoading || !inviteCode.trim()}>
-                {inviteLoading ? "Linking..." : "Link"}
+                {inviteLoading ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <RingSpinner /> Linking...
+                  </span>
+                ) : "Link"}
               </button>
             </form>
             {inviteError && <p style={{ color: "var(--color-danger)", fontSize: "0.8125rem", marginTop: "var(--space-sm)" }}>{inviteError}</p>}
@@ -223,7 +255,7 @@ export default function CaregiverDashboard() {
 
         {fetchError && (
           <div className="error-banner">
-            <span className="error-banner__icon">&#9888;</span>
+            <AlertTriangle size={18} className="error-banner__icon" />
             <span className="error-banner__text">{fetchError}</span>
           </div>
         )}
@@ -254,14 +286,19 @@ export default function CaregiverDashboard() {
             {view === "today" && (
               <>
                 <section>
+                  <div className="today-date">{todayDateStr}</div>
                   <div className="section-header">
                     <h2 className="section-header__title">Today&apos;s Doses</h2>
                   </div>
-                  {loading ? (
-                    <p style={{ color: "var(--color-muted)" }}>Loading...</p>
+                  {isLoadingDoses ? (
+                    <div>
+                      <SkeletonCard />
+                      <SkeletonCard />
+                      <SkeletonCard />
+                    </div>
                   ) : doses.length === 0 ? (
                     <div className="empty-state">
-                      <div className="empty-state__icon">&#10003;</div>
+                      <CheckCircle2 size={40} className="empty-state__icon" style={{ color: "var(--color-success)" }} />
                       <div className="empty-state__title">No doses scheduled</div>
                       <div className="empty-state__desc">This patient has no doses for today.</div>
                     </div>
@@ -276,7 +313,7 @@ export default function CaregiverDashboard() {
                   <div className="section-header">
                     <h2 className="section-header__title">Adherence</h2>
                   </div>
-                  <AdherenceStat stats={adherence} />
+                  {isLoadingDoses ? <SkeletonAdherenceCard /> : <AdherenceStat stats={adherence} />}
                 </section>
               </>
             )}
@@ -288,10 +325,14 @@ export default function CaregiverDashboard() {
                   <span className="section-header__count">Last 30 days</span>
                 </div>
                 {historyLoading ? (
-                  <p style={{ color: "var(--color-muted)" }}>Loading...</p>
+                  <div>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
                 ) : history.length === 0 ? (
                   <div className="empty-state">
-                    <div className="empty-state__icon">&#128203;</div>
+                    <ClipboardList size={40} className="empty-state__icon" style={{ color: "var(--color-muted)" }} />
                     <div className="empty-state__title">No history yet</div>
                     <div className="empty-state__desc">Logged doses will appear here.</div>
                   </div>
@@ -315,9 +356,9 @@ export default function CaregiverDashboard() {
                               <span className="history-entry__time">at {e.scheduled_time}</span>
                             </div>
                             <span className={`dose-card__status dose-card__status--${e.status}`}>
-                              {e.status === "taken" && "\u2713 "}
-                              {e.status === "skipped" && "\u2717 "}
-                              {e.status === "snoozed" && "\u23F0 "}
+                              {e.status === "taken" && <Check size={14} />}
+                              {e.status === "skipped" && <X size={14} />}
+                              {e.status === "snoozed" && <AlarmClock size={14} />}
                               {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                             </span>
                           </div>
