@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import * as api from "../api/client.js";
 import DoseCard from "../components/DoseCard.jsx";
 import MedicationForm from "../components/MedicationForm.jsx";
+import MedicationDetailModal from "../components/MedicationDetailModal.jsx";
 import AdherenceStat from "../components/AdherenceStat.jsx";
 import { computeLatenessMinutes } from "../utils/urgency.js";
 import useReminders from "../utils/useReminders.js";
@@ -69,6 +70,7 @@ export default function PatientDashboard() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [editingMed, setEditingMed] = useState(null);
+  const [detailMed, setDetailMed] = useState(null);
   const [view, setView] = useState("today");
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -244,10 +246,14 @@ export default function PatientDashboard() {
               <div className="skeleton" style={{ height: 44 }} />
             </div>
           </aside>
-        </div>
       </div>
-    );
-  }
+
+      {detailMed && (
+        <MedicationDetailModal medication={detailMed} onClose={() => setDetailMed(null)} />
+      )}
+    </div>
+  );
+}
 
   return (
     <div className="dashboard">
@@ -339,7 +345,7 @@ export default function PatientDashboard() {
 
               <section>
                 <div className="section-header">
-                  <h2 className="section-header__title">Adherence</h2>
+                  <h2 className="section-header__title">Your Streak</h2>
                 </div>
                 <AdherenceStat stats={adherence} />
               </section>
@@ -434,7 +440,7 @@ export default function PatientDashboard() {
               <div className="med-list">
                 {medications.map((med) => (
                   <div key={med.medication_id} className="med-item">
-                    <div className="med-item__info">
+                    <div className="med-item__info" onClick={() => setDetailMed(med)} style={{ cursor: "pointer" }}>
                       <div>
                         <span className="med-item__name">{med.name}</span>
                         <span className="med-item__dosage">{med.dosage}</span>

@@ -335,7 +335,7 @@ export default function CaregiverDashboard() {
 
                 <section>
                   <div className="section-header">
-                    <h2 className="section-header__title">Adherence</h2>
+                    <h2 className="section-header__title">Your Streak</h2>
                   </div>
                   {isLoadingDoses ? <SkeletonAdherenceCard /> : <AdherenceStat stats={adherence} />}
                 </section>

@@ -308,6 +308,26 @@
   margin-top: 1px;
 }
 
+/* ── Per-medication adherence ── */
+.dose-card__adherence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  letter-spacing: 0.01em;
+}
+
+.dose-card__adherence-stat {
+  white-space: nowrap;
+}
+
+.dose-card__adherence-sep {
+  opacity: 0.4;
+}
+
 /* ── Meta row (time + urgency) ── */
 .dose-card__meta {
   display: flex;
@@ -534,6 +554,12 @@
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   box-shadow: var(--shadow-card);
+}
+
+.adherence-card--streak {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
 }
 
 .adherence-grid {
@@ -1355,6 +1381,87 @@
   font-size: 0.875rem;
   color: var(--color-muted);
   font-weight: 500;
+}
+
+/* ── Medication Detail Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modal__close {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  min-height: auto;
+  transition: color 0.15s, background 0.15s;
+}
+
+.modal__close:hover {
+  color: var(--color-text);
+  background: var(--color-border-light);
+}
+
+.modal__body {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modal__value {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 /* ── Preferred reduced motion ── */

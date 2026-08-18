@@ -89,8 +89,45 @@ router.get("/today", authenticate, async (req, res) => {
       }
     }
 
-    const today = new Date();
-    const dayAbbr = DAY_NAMES[today.getDay()];
+    let adherenceMap = {};
+    if (scheduleIds.length > 0) {
+      const { rows: recentLogs } = await db.query(
+        `SELECT al.schedule_id, al.status, al.logged_at::date::text AS log_date
+         FROM adherence_log al
+         WHERE al.schedule_id = ANY($1::int[])
+           AND al.logged_at >= CURRENT_DATE - INTERVAL '30 days'`,
+        [scheduleIds]
+      );
+      const logBySchedule = {};
+      for (const rl of recentLogs) {
+        if (!logBySchedule[rl.schedule_id]) logBySchedule[rl.schedule_id] = {};
+        logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
+      }
+      const today = new Date();
+      for (const s of schedules) {
+        let total7 = 0, taken7 = 0, total30 = 0, taken30 = 0;
+        for (let i = 0; i < 30; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          if (!isScheduleActiveOnDay(s.days_of_week, DAY_NAMES[date.getDay()])) continue;
+          const ds = formatDate(date);
+          const hit = logBySchedule[s.schedule_id]?.[ds];
+          if (i < 7) {
+            total7++;
+            if (hit === "taken") taken7++;
+          }
+          total30++;
+          if (hit === "taken") taken30++;
+        }
+        adherenceMap[s.schedule_id] = {
+          adherence_7d: total7 === 0 ? null : Math.round((taken7 / total7) * 100),
+          adherence_30d: total30 === 0 ? null : Math.round((taken30 / total30) * 100),
+        };
+      }
+    }
+
+    const today2 = new Date();
+    const dayAbbr = DAY_NAMES[today2.getDay()];
 
     const doses = schedules
       .filter((s) => isScheduleActiveOnDay(s.days_of_week, dayAbbr))
@@ -103,6 +140,8 @@ router.get("/today", authenticate, async (req, res) => {
         status: logMap[s.schedule_id]?.status || null,
         log_id: logMap[s.schedule_id]?.log_id || null,
         logged_at: logMap[s.schedule_id]?.logged_at || null,
+        adherence_7d: adherenceMap[s.schedule_id]?.adherence_7d ?? null,
+        adherence_30d: adherenceMap[s.schedule_id]?.adherence_30d ?? null,
       }));
 
     res.json(doses);
