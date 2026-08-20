@@ -1,5 +1,6 @@
 import { Clock, Check, X, AlarmClock, CheckCircle2, XCircle, AlarmClockOff } from "lucide-react";
 import computeUrgency, { computeLatenessMinutes } from "../utils/urgency.js";
+import MiniAdherenceRing from "./MiniAdherenceRing.jsx";
 
 const statusIcons = {
   taken: <Check size={14} />,
@@ -36,9 +37,8 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
           <div className="dose-card__dosage">{dosage}</div>
           {(adherence_7d != null || adherence_30d != null) && (
             <div className="dose-card__adherence">
-              {adherence_7d != null && <span className="dose-card__adherence-stat">7d: {adherence_7d}%</span>}
-              {adherence_7d != null && adherence_30d != null && <span className="dose-card__adherence-sep">&middot;</span>}
-              {adherence_30d != null && <span className="dose-card__adherence-stat">30d: {adherence_30d}%</span>}
+              <MiniAdherenceRing value={adherence_7d} label="Last 7" />
+              <MiniAdherenceRing value={adherence_30d} label="Last 30" />
             </div>
           )}
           <div className="dose-card__meta">

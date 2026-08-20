@@ -60,8 +60,8 @@ router.get("/today", authenticate, async (req, res) => {
     if (target.error) return res.status(target.status).json({ error: target.error });
 
     const { rows: schedules } = await db.query(
-      `SELECT s.schedule_id, m.name AS medication_name, m.dosage,
-              s.time_of_day, s.days_of_week
+      `SELECT s.schedule_id, m.medication_id, m.name AS medication_name, m.dosage,
+              m.start_date, s.time_of_day, s.days_of_week
        FROM schedule s
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1
@@ -95,7 +95,7 @@ router.get("/today", authenticate, async (req, res) => {
         `SELECT al.schedule_id, al.status, al.logged_at::date::text AS log_date
          FROM adherence_log al
          WHERE al.schedule_id = ANY($1::int[])
-           AND al.logged_at >= CURRENT_DATE - INTERVAL '30 days'`,
+           AND al.logged_at >= CURRENT_DATE - INTERVAL '365 days'`,
         [scheduleIds]
       );
       const logBySchedule = {};
@@ -103,25 +103,31 @@ router.get("/today", authenticate, async (req, res) => {
         if (!logBySchedule[rl.schedule_id]) logBySchedule[rl.schedule_id] = {};
         logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
       }
-      const today = new Date();
-      for (const s of schedules) {
-        let total7 = 0, taken7 = 0, total30 = 0, taken30 = 0;
-        for (let i = 0; i < 30; i++) {
+
+      function countOccurrences(daysOfWeek, startDate, limit) {
+        const today = new Date();
+        const medStart = startDate ? new Date(startDate + "T00:00:00") : null;
+        const occurrences = [];
+        for (let i = 0; i < 365 && occurrences.length < limit; i++) {
           const date = new Date(today);
           date.setDate(date.getDate() - i);
-          if (!isScheduleActiveOnDay(s.days_of_week, DAY_NAMES[date.getDay()])) continue;
-          const ds = formatDate(date);
-          const hit = logBySchedule[s.schedule_id]?.[ds];
-          if (i < 7) {
-            total7++;
-            if (hit === "taken") taken7++;
-          }
-          total30++;
-          if (hit === "taken") taken30++;
+          if (medStart && date < medStart) break;
+          if (!isScheduleActiveOnDay(daysOfWeek, DAY_NAMES[date.getDay()])) continue;
+          occurrences.push(formatDate(date));
         }
+        return occurrences;
+      }
+
+      for (const s of schedules) {
+        const last7 = countOccurrences(s.days_of_week, s.start_date, 7);
+        const last30 = countOccurrences(s.days_of_week, s.start_date, 30);
+
+        const taken7 = last7.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
+        const taken30 = last30.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
+
         adherenceMap[s.schedule_id] = {
-          adherence_7d: total7 === 0 ? null : Math.round((taken7 / total7) * 100),
-          adherence_30d: total30 === 0 ? null : Math.round((taken30 / total30) * 100),
+          adherence_7d: last7.length === 0 ? null : Math.round((taken7 / last7.length) * 100),
+          adherence_30d: last30.length === 0 ? null : Math.round((taken30 / last30.length) * 100),
         };
       }
     }
