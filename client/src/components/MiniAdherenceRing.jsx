@@ -2,7 +2,7 @@ const RING_SIZE = 38;
 const STROKE = 3.5;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const MIN_ARC = 0.02;
+const MIN_ARC = 0.09;
 
 function ringColor(pct) {
   if (pct >= 80) return "var(--color-success)";
