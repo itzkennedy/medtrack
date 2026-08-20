@@ -61,7 +61,7 @@ router.get("/today", authenticate, async (req, res) => {
 
     const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, m.medication_id, m.name AS medication_name, m.dosage,
-              m.start_date, s.time_of_day, s.days_of_week
+              m.start_date::text AS start_date, s.time_of_day, s.days_of_week
        FROM schedule s
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1
