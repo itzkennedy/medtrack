@@ -43,8 +43,6 @@ function SkeletonCard() {
 function SkeletonStreak() {
   return <div className="skeleton skeleton--streak" />;
 }
-  );
-}
 
 export default function PatientDashboard() {
   const { user, logout } = useAuth();
