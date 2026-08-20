@@ -60,12 +60,6 @@ export default function DoseCard({
           <div className="dose-card__name">{medication_name}</div>
           <div className="dose-card__dosage">{dosage}</div>
         </div>
-
-        {dailyProgress != null && (
-          <div className="dose-card__ring">
-            <MiniAdherenceRing value={dailyProgress} label={daysLabel} />
-          </div>
-        )}
       </div>
 
       <div className="dose-card__meta">
@@ -97,6 +91,12 @@ export default function DoseCard({
           </span>
         )}
       </div>
+
+      {dailyProgress != null && (
+        <div className="dose-card__ring-container">
+          <MiniAdherenceRing value={dailyProgress} label={daysLabel} />
+        </div>
+      )}
 
       {!readOnly && !status && (
         <div className="dose-card__actions">

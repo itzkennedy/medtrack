@@ -220,7 +220,6 @@
 
 /* ── Dose Card ── */
 .dose-card {
-  max-width: 520px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -268,10 +267,10 @@
   opacity: 0.6;
 }
 
-/* ── Header: name + dosage left, ring right ── */
+/* ── Header: name + dosage ── */
 .dose-card__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-md);
 }
@@ -299,15 +298,18 @@
   line-height: 1.4;
 }
 
-/* ── Progress ring ── */
-.dose-card__ring {
-  flex-shrink: 0;
+/* ── Progress ring — centered in card ── */
+.dose-card__ring-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.25rem 0;
 }
 
 .mini-ring {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 90px;
+  height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -322,7 +324,7 @@
 .mini-ring__value {
   position: relative;
   z-index: 1;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -333,10 +335,10 @@
 .mini-ring__label {
   position: relative;
   z-index: 1;
-  font-size: 0.5625rem;
+  font-size: 0.625rem;
   font-weight: 500;
   color: var(--color-muted);
-  margin-top: 1px;
+  margin-top: 2px;
   letter-spacing: 0.01em;
 }
 
@@ -1093,8 +1095,8 @@
     padding: var(--space-md);
   }
 
-  .dose-card__header {
-    flex-wrap: wrap;
+  .dose-card__ring-container {
+    padding: 1rem 0;
   }
 
   .dose-card__actions {
