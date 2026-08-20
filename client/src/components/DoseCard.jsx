@@ -62,7 +62,7 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
         <div className="dose-card__right">
           {adherence != null && (
             <div className="dose-card__ring">
-              <MiniAdherenceRing value={adherence} />
+              <MiniAdherenceRing value={adherence} label="Last 30" />
             </div>
           )}
           {readOnly ? (

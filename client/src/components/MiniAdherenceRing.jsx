@@ -1,8 +1,7 @@
-const RING_SIZE = 38;
-const STROKE = 3.5;
+const RING_SIZE = 60;
+const STROKE = 4;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const MIN_ARC = 0.09;
 
 function ringColor(pct) {
   if (pct >= 80) return "var(--color-success)";
@@ -10,11 +9,10 @@ function ringColor(pct) {
   return "var(--color-danger)";
 }
 
-export default function MiniAdherenceRing({ value }) {
+export default function MiniAdherenceRing({ value, label }) {
   if (value == null) return null;
 
-  const visible = Math.max(value / 100, MIN_ARC);
-  const offset = CIRCUMFERENCE - visible * CIRCUMFERENCE;
+  const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
   const color = ringColor(value);
 
   return (
@@ -28,20 +26,23 @@ export default function MiniAdherenceRing({ value }) {
           stroke="var(--color-border)"
           strokeWidth={STROKE}
         />
-        <circle
-          cx={RING_SIZE / 2}
-          cy={RING_SIZE / 2}
-          r={RADIUS}
-          fill="none"
-          stroke={color}
-          strokeWidth={STROKE}
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={offset}
-          style={{ transform: "rotate(-90deg)", transformOrigin: "center", transition: "stroke-dashoffset 0.4s ease" }}
-        />
+        {value > 0 && (
+          <circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RADIUS}
+            fill="none"
+            stroke={color}
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={offset}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "center", transition: "stroke-dashoffset 0.4s ease" }}
+          />
+        )}
       </svg>
-      <span className="mini-ring__value" style={{ color }}>{value}%</span>
+      <span className="mini-ring__value" style={value > 0 ? { color } : undefined}>{value}%</span>
+      {label && <span className="mini-ring__label">{label}</span>}
     </div>
   );
 }
