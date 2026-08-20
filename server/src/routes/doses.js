@@ -149,28 +149,33 @@ router.get("/today", authenticate, async (req, res) => {
         logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
       }
 
-      function countAllOccurrences(schedule) {
+      function computeProgress(schedule) {
         const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : new Date(todayDateObj);
-        const medEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : todayDateObj;
-        const cappedEnd = medEnd < todayDateObj ? medEnd : todayDateObj;
-        const occurrences = [];
-        const cursor = new Date(medStart);
-        while (cursor <= cappedEnd) {
-          if (isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[cursor.getDay()])) {
-            occurrences.push(formatDate(cursor));
+        const planEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : todayDateObj;
+        const countUpTo = (limitDate) => {
+          let count = 0;
+          const cursor = new Date(medStart);
+          while (cursor <= limitDate) {
+            if (isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[cursor.getDay()])) count++;
+            cursor.setDate(cursor.getDate() + 1);
           }
-          cursor.setDate(cursor.getDate() + 1);
-        }
-        return occurrences;
+          return count;
+        };
+        const totalPlanned = countUpTo(planEnd);
+        const totalTaken = countUpTo(todayDateObj < planEnd ? todayDateObj : planEnd);
+        return { totalPlanned, totalTaken };
       }
 
       for (const s of activeSchedules) {
-        const occurrences = countAllOccurrences(s);
-        const taken = occurrences.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
+        const { totalPlanned, totalTaken } = computeProgress(s);
+        const taken = logBySchedule[s.schedule_id]
+          ? Object.values(logBySchedule[s.schedule_id]).filter((st) => st === "taken").length
+          : 0;
+        const capped = Math.min(taken, totalTaken);
 
         adherenceMap[s.schedule_id] = {
-          adherence: occurrences.length === 0 ? null : Math.round((taken / occurrences.length) * 100),
-          adherence_count: occurrences.length,
+          adherence: totalPlanned === 0 ? null : Math.round((capped / totalPlanned) * 100),
+          adherence_count: totalPlanned,
         };
       }
     }
