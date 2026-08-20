@@ -27,18 +27,20 @@ export default function DoseCard({
   onLog,
   readOnly,
   now,
-  dailyProgress,
+  adherence,
+  scheduled_date,
   urgency: urgencyProp,
   start_date,
   end_date,
 }) {
-  const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now);
+  const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now, scheduled_date);
   const isNotYet = !status && urgency === "not-yet";
   const isDueSoon = !status && urgency === "due-soon";
   const isLocked = isNotYet || isDueSoon;
-  const latenessMin = status ? computeLatenessMinutes(time_of_day, logged_at, now) : 0;
+  const latenessMin = status ? computeLatenessMinutes(time_of_day, logged_at, scheduled_date) : 0;
   const isLate = latenessMin > 30;
   const daysLabel = daysActiveLabel(start_date, end_date);
+  const ringValue = adherence;
 
   const cardClass = [
     "dose-card",
@@ -55,7 +57,6 @@ export default function DoseCard({
 
   return (
     <div className={cardClass}>
-      {/* Top row: info left, time+badges right */}
       <div className="dose-card__top">
         <div className="dose-card__info">
           <div className="dose-card__name">{medication_name}</div>
@@ -93,14 +94,12 @@ export default function DoseCard({
         </div>
       </div>
 
-      {/* Centered ring — visual focus */}
-      {dailyProgress != null && (
+      {ringValue != null && (
         <div className="dose-card__ring-container">
-          <MiniAdherenceRing value={dailyProgress} label={daysLabel} />
+          <MiniAdherenceRing value={ringValue} label={daysLabel} />
         </div>
       )}
 
-      {/* Actions or status */}
       {!readOnly && !status && (
         <div className="dose-card__actions">
           {isLocked ? (

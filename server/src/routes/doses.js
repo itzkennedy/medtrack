@@ -27,6 +27,11 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
+function parseTimeMinutes(timeStr) {
+  const parts = timeStr.split(":");
+  return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+}
+
 async function resolvePatientId(req) {
   const patientId = req.query.patient_id;
 
@@ -54,10 +59,33 @@ async function resolvePatientId(req) {
   return { userId: parseInt(patientId) };
 }
 
+function getClientDateTime(req) {
+  const clientDate = req.query.client_date;
+  const clientTime = req.query.client_time;
+
+  let dateStr;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+    dateStr = clientDate;
+  } else {
+    dateStr = formatDate(new Date());
+  }
+
+  let timeStr;
+  if (/^\d{1,2}:\d{2}$/.test(clientTime)) {
+    timeStr = clientTime;
+  } else {
+    timeStr = "23:59";
+  }
+
+  return { dateStr, timeStr };
+}
+
 router.get("/today", authenticate, async (req, res) => {
   try {
     const target = await resolvePatientId(req);
     if (target.error) return res.status(target.status).json({ error: target.error });
+
+    const { dateStr: todayDate } = getClientDateTime(req);
 
     const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, m.medication_id, m.name AS medication_name, m.dosage,
@@ -70,15 +98,31 @@ router.get("/today", authenticate, async (req, res) => {
       [target.userId]
     );
 
-    const scheduleIds = schedules.map((s) => s.schedule_id);
+    const todayDateObj = new Date(todayDate + "T00:00:00");
+    const todayDayAbbr = DAY_NAMES[todayDateObj.getDay()];
+
+    const activeSchedules = schedules.filter((s) => {
+      if (!isScheduleActiveOnDay(s.days_of_week, todayDayAbbr)) return false;
+      if (s.start_date) {
+        const medStart = new Date(s.start_date + "T00:00:00");
+        if (todayDateObj < medStart) return false;
+      }
+      if (s.end_date) {
+        const medEnd = new Date(s.end_date + "T00:00:00");
+        if (todayDateObj > medEnd) return false;
+      }
+      return true;
+    });
+
+    const scheduleIds = activeSchedules.map((s) => s.schedule_id);
     let logs = [];
     if (scheduleIds.length > 0) {
       const logResult = await db.query(
         `SELECT schedule_id, status, log_id, logged_at
          FROM adherence_log
-         WHERE schedule_id = ANY($1::int[]) AND logged_at::date = CURRENT_DATE
+         WHERE schedule_id = ANY($1::int[]) AND logged_at::date = $2::date
          ORDER BY logged_at DESC`,
-        [scheduleIds]
+        [scheduleIds, todayDate]
       );
       logs = logResult.rows;
     }
@@ -96,8 +140,8 @@ router.get("/today", authenticate, async (req, res) => {
         `SELECT al.schedule_id, al.status, al.logged_at::date::text AS log_date
          FROM adherence_log al
          WHERE al.schedule_id = ANY($1::int[])
-           AND al.logged_at >= CURRENT_DATE - INTERVAL '365 days'`,
-        [scheduleIds]
+           AND al.logged_at >= $2::date - INTERVAL '365 days'`,
+        [scheduleIds, todayDate]
       );
       const logBySchedule = {};
       for (const rl of recentLogs) {
@@ -105,22 +149,23 @@ router.get("/today", authenticate, async (req, res) => {
         logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
       }
 
-      function countOccurrences(daysOfWeek, startDate, limit) {
-        const today = new Date();
-        const medStart = startDate ? new Date(startDate + "T00:00:00") : null;
+      function countOccurrences(schedule, limit) {
+        const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : null;
+        const medEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : null;
         const occurrences = [];
         for (let i = 0; i < 365 && occurrences.length < limit; i++) {
-          const date = new Date(today);
+          const date = new Date(todayDateObj);
           date.setDate(date.getDate() - i);
           if (medStart && date < medStart) break;
-          if (!isScheduleActiveOnDay(daysOfWeek, DAY_NAMES[date.getDay()])) continue;
+          if (medEnd && date > medEnd) continue;
+          if (!isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[date.getDay()])) continue;
           occurrences.push(formatDate(date));
         }
         return occurrences;
       }
 
-      for (const s of schedules) {
-        const occurrences = countOccurrences(s.days_of_week, s.start_date, 30);
+      for (const s of activeSchedules) {
+        const occurrences = countOccurrences(s, 30);
         const taken = occurrences.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
 
         adherenceMap[s.schedule_id] = {
@@ -130,25 +175,21 @@ router.get("/today", authenticate, async (req, res) => {
       }
     }
 
-    const today2 = new Date();
-    const dayAbbr = DAY_NAMES[today2.getDay()];
-
-    const doses = schedules
-      .filter((s) => isScheduleActiveOnDay(s.days_of_week, dayAbbr))
-      .map((s) => ({
-        schedule_id: s.schedule_id,
-        medication_name: s.medication_name,
-        dosage: s.dosage,
-        time_of_day: formatTime(s.time_of_day),
-        days_of_week: s.days_of_week,
-        start_date: s.start_date,
-        end_date: s.end_date,
-        status: logMap[s.schedule_id]?.status || null,
-        log_id: logMap[s.schedule_id]?.log_id || null,
-        logged_at: logMap[s.schedule_id]?.logged_at || null,
-        adherence: adherenceMap[s.schedule_id]?.adherence ?? null,
-        adherence_count: adherenceMap[s.schedule_id]?.adherence_count ?? null,
-      }));
+    const doses = activeSchedules.map((s) => ({
+      schedule_id: s.schedule_id,
+      medication_name: s.medication_name,
+      dosage: s.dosage,
+      time_of_day: formatTime(s.time_of_day),
+      days_of_week: s.days_of_week,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      scheduled_date: todayDate,
+      status: logMap[s.schedule_id]?.status || null,
+      log_id: logMap[s.schedule_id]?.log_id || null,
+      logged_at: logMap[s.schedule_id]?.logged_at || null,
+      adherence: adherenceMap[s.schedule_id]?.adherence ?? null,
+      adherence_count: adherenceMap[s.schedule_id]?.adherence_count ?? null,
+    }));
 
     res.json(doses);
   } catch (err) {
@@ -199,8 +240,11 @@ router.get("/adherence", authenticate, async (req, res) => {
     const target = await resolvePatientId(req);
     if (target.error) return res.status(target.status).json({ error: target.error });
 
+    const { dateStr: todayDate, timeStr: todayTime } = getClientDateTime(req);
+
     const { rows: schedules } = await db.query(
-      `SELECT s.schedule_id, s.days_of_week, m.start_date::text AS start_date
+      `SELECT s.schedule_id, s.days_of_week, s.time_of_day,
+              m.start_date::text AS start_date, m.end_date::text AS end_date
        FROM schedule s
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1`,
@@ -216,8 +260,8 @@ router.get("/adherence", authenticate, async (req, res) => {
        FROM adherence_log al
        JOIN schedule s ON al.schedule_id = s.schedule_id
        JOIN medication m ON s.medication_id = m.medication_id
-       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - INTERVAL '365 days'`,
-      [target.userId]
+       WHERE m.user_id = $1 AND al.logged_at >= $2::date - INTERVAL '365 days'`,
+      [target.userId, todayDate]
     );
 
     const logMap = {};
@@ -232,16 +276,31 @@ router.get("/adherence", authenticate, async (req, res) => {
         const medStart = new Date(schedule.start_date + "T00:00:00");
         if (date < medStart) return false;
       }
+      if (schedule.end_date) {
+        const medEnd = new Date(schedule.end_date + "T00:00:00");
+        if (date > medEnd) return false;
+      }
       return isScheduleActiveOnDay(schedule.days_of_week, dayAbbr);
+    }
+
+    const todayDateObj = new Date(todayDate + "T00:00:00");
+    const currentMinutes = parseTimeMinutes(todayTime);
+
+    function allScheduledTimesPassed() {
+      for (const schedule of schedules) {
+        if (!isScheduleActiveOnDate(schedule, todayDateObj)) continue;
+        const scheduledMinutes = parseTimeMinutes(schedule.time_of_day);
+        if (currentMinutes < scheduledMinutes) return false;
+      }
+      return true;
     }
 
     function calculateAdherence(days) {
       let total = 0;
       let taken = 0;
-      const today = new Date();
 
-      for (let i = 0; i < days; i++) {
-        const date = new Date(today);
+      for (let i = 1; i <= days; i++) {
+        const date = new Date(todayDateObj);
         date.setDate(date.getDate() - i);
         const dateStr = formatDate(date);
 
@@ -255,15 +314,39 @@ router.get("/adherence", authenticate, async (req, res) => {
         }
       }
 
+      if (allScheduledTimesPassed()) {
+        const dateStr = todayDate;
+        for (const schedule of schedules) {
+          if (isScheduleActiveOnDate(schedule, todayDateObj)) {
+            total++;
+            if (logMap[schedule.schedule_id]?.[dateStr] === "taken") {
+              taken++;
+            }
+          }
+        }
+      }
+
       return total === 0 ? 0 : Math.round((taken / total) * 100);
     }
 
     function calculateStreak() {
       let streak = 0;
-      const today = new Date();
 
-      for (let i = 0; i < 365; i++) {
-        const date = new Date(today);
+      if (allScheduledTimesPassed()) {
+        let todayAllTaken = true;
+        for (const schedule of schedules) {
+          if (isScheduleActiveOnDate(schedule, todayDateObj)) {
+            if (logMap[schedule.schedule_id]?.[todayDate] !== "taken") {
+              todayAllTaken = false;
+              break;
+            }
+          }
+        }
+        if (todayAllTaken) streak++;
+      }
+
+      for (let i = 1; i < 365; i++) {
+        const date = new Date(todayDateObj);
         date.setDate(date.getDate() - i);
         const dateStr = formatDate(date);
 
@@ -281,10 +364,7 @@ router.get("/adherence", authenticate, async (req, res) => {
         }
 
         if (!hasSchedule) continue;
-        if (!allTaken) {
-          if (i === 0) continue;
-          break;
-        }
+        if (!allTaken) break;
         streak++;
       }
 
@@ -307,6 +387,7 @@ router.get("/history", authenticate, async (req, res) => {
     const target = await resolvePatientId(req);
     if (target.error) return res.status(target.status).json({ error: target.error });
 
+    const { dateStr: todayDate } = getClientDateTime(req);
     const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
 
     const { rows: history } = await db.query(
@@ -316,9 +397,9 @@ router.get("/history", authenticate, async (req, res) => {
        FROM adherence_log al
        JOIN schedule s ON al.schedule_id = s.schedule_id
        JOIN medication m ON s.medication_id = m.medication_id
-       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - ($2 || ' days')::interval
+       WHERE m.user_id = $1 AND al.logged_at >= $2::date - ($3 || ' days')::interval
        ORDER BY al.logged_at DESC`,
-      [target.userId, String(days)]
+      [target.userId, todayDate, String(days)]
     );
 
     const result = history.map((row) => ({

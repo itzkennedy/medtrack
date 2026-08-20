@@ -11,25 +11,42 @@ function parseTimeOfDay(timeOfDay) {
   return { hours, minutes };
 }
 
-export default function computeUrgency(timeOfDay, status, now = new Date()) {
-  if (status) return null;
+function buildScheduledDate(dateStr, timeOfDay) {
   const parsed = parseTimeOfDay(timeOfDay);
   if (!parsed) return null;
-  const scheduled = new Date(now);
-  scheduled.setHours(parsed.hours, parsed.minutes, 0, 0);
+  if (dateStr) {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setHours(parsed.hours, parsed.minutes, 0, 0);
+    return d;
+  }
+  const d = new Date();
+  d.setHours(parsed.hours, parsed.minutes, 0, 0);
+  return d;
+}
+
+export default function computeUrgency(timeOfDay, status, now = new Date(), scheduledDateStr) {
+  if (status) return null;
+  const scheduled = buildScheduledDate(scheduledDateStr, timeOfDay);
+  if (!scheduled) return null;
   const diffMin = (scheduled - now) / 60000;
   if (diffMin < 0) return "overdue";
   if (diffMin <= 60) return "due-soon";
   return "not-yet";
 }
 
-export function computeLatenessMinutes(timeOfDay, loggedAt) {
+export function computeLatenessMinutes(timeOfDay, loggedAt, scheduledDateStr) {
   if (!loggedAt) return 0;
   const parsed = parseTimeOfDay(timeOfDay);
   if (!parsed) return 0;
   const logged = new Date(loggedAt);
-  const scheduled = new Date(logged);
-  scheduled.setHours(parsed.hours, parsed.minutes, 0, 0);
+  let scheduled;
+  if (scheduledDateStr) {
+    scheduled = new Date(scheduledDateStr + "T00:00:00");
+    scheduled.setHours(parsed.hours, parsed.minutes, 0, 0);
+  } else {
+    scheduled = new Date(logged);
+    scheduled.setHours(parsed.hours, parsed.minutes, 0, 0);
+  }
   const diffMin = Math.round((logged - scheduled) / 60000);
   return diffMin > 0 ? diffMin : 0;
 }

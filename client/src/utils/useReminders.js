@@ -88,12 +88,14 @@ export default function useReminders(doses) {
 
   useEffect(() => {
     const onFocus = () => scheduleTimers();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", () => {
+    const onVisibilityChange = () => {
       if (!document.hidden) onFocus();
-    });
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [scheduleTimers]);
 
