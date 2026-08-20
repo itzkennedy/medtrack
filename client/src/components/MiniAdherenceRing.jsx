@@ -2,6 +2,7 @@ const RING_SIZE = 38;
 const STROKE = 3.5;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const MIN_ARC = 0.02;
 
 function ringColor(pct) {
   if (pct >= 80) return "var(--color-success)";
@@ -12,7 +13,8 @@ function ringColor(pct) {
 export default function MiniAdherenceRing({ value }) {
   if (value == null) return null;
 
-  const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
+  const visible = Math.max(value / 100, MIN_ARC);
+  const offset = CIRCUMFERENCE - visible * CIRCUMFERENCE;
   const color = ringColor(value);
 
   return (
