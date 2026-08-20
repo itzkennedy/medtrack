@@ -149,23 +149,23 @@ router.get("/today", authenticate, async (req, res) => {
         logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
       }
 
-      function countOccurrences(schedule, limit) {
-        const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : null;
-        const medEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : null;
+      function countAllOccurrences(schedule) {
+        const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : new Date(todayDateObj);
+        const medEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : todayDateObj;
+        const cappedEnd = medEnd < todayDateObj ? medEnd : todayDateObj;
         const occurrences = [];
-        for (let i = 0; i < 365 && occurrences.length < limit; i++) {
-          const date = new Date(todayDateObj);
-          date.setDate(date.getDate() - i);
-          if (medStart && date < medStart) break;
-          if (medEnd && date > medEnd) continue;
-          if (!isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[date.getDay()])) continue;
-          occurrences.push(formatDate(date));
+        const cursor = new Date(medStart);
+        while (cursor <= cappedEnd) {
+          if (isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[cursor.getDay()])) {
+            occurrences.push(formatDate(cursor));
+          }
+          cursor.setDate(cursor.getDate() + 1);
         }
         return occurrences;
       }
 
       for (const s of activeSchedules) {
-        const occurrences = countOccurrences(s, 30);
+        const occurrences = countAllOccurrences(s);
         const taken = occurrences.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
 
         adherenceMap[s.schedule_id] = {
