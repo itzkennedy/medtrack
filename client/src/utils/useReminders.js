@@ -17,18 +17,19 @@ function parseTimeToday(timeOfDay) {
 }
 
 function sendNotification(title, body) {
-  if (Notification.permission === "granted") {
-    try {
-      new Notification(title, {
-        body,
-        icon: "/favicon.svg",
-        tag: "medtrack-dose",
-        requireInteraction: false,
+  if (Notification.permission !== "granted") return;
+  try {
+    new Notification(title, {
+      body,
+      icon: "/favicon.svg",
+      tag: "medtrack-dose",
+      requireInteraction: false,
+    });
+  } catch {
+    if (navigator.serviceWorker?.ready) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(title, { body, icon: "/favicon.svg" });
       });
-    } catch {
-      if (self.registration) {
-        self.registration.showNotification(title, { body, icon: "/favicon.svg" });
-      }
     }
   }
 }
@@ -40,6 +41,12 @@ export default function useReminders(doses) {
     if (typeof Notification === "undefined") return "denied";
     return Notification.permission;
   });
+
+  useEffect(() => {
+    if (permission === "granted" && navigator.serviceWorker) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, [permission]);
 
   useEffect(() => {
     if (unlockedRef.current) return;

@@ -152,29 +152,28 @@ router.get("/today", authenticate, async (req, res) => {
       function computeProgress(schedule) {
         const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : new Date(todayDateObj);
         const planEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : todayDateObj;
-        const countUpTo = (limitDate) => {
-          let count = 0;
-          const cursor = new Date(medStart);
-          while (cursor <= limitDate) {
-            if (isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[cursor.getDay()])) count++;
-            cursor.setDate(cursor.getDate() + 1);
+        const periodEnd = todayDateObj < planEnd ? todayDateObj : planEnd;
+        let totalPlanned = 0;
+        let taken = 0;
+        const logs = logBySchedule[schedule.schedule_id] || {};
+        const cursor = new Date(medStart);
+        while (cursor <= planEnd) {
+          if (isScheduleActiveOnDay(schedule.days_of_week, DAY_NAMES[cursor.getDay()])) {
+            totalPlanned++;
+            if (cursor <= periodEnd && logs[formatDate(cursor)] === "taken") {
+              taken++;
+            }
           }
-          return count;
-        };
-        const totalPlanned = countUpTo(planEnd);
-        const totalTaken = countUpTo(todayDateObj < planEnd ? todayDateObj : planEnd);
-        return { totalPlanned, totalTaken };
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        return { totalPlanned, taken };
       }
 
       for (const s of activeSchedules) {
-        const { totalPlanned, totalTaken } = computeProgress(s);
-        const taken = logBySchedule[s.schedule_id]
-          ? Object.values(logBySchedule[s.schedule_id]).filter((st) => st === "taken").length
-          : 0;
-        const capped = Math.min(taken, totalTaken);
+        const { totalPlanned, taken } = computeProgress(s);
 
         adherenceMap[s.schedule_id] = {
-          adherence: totalPlanned === 0 ? null : Math.round((capped / totalPlanned) * 100),
+          adherence: totalPlanned === 0 ? null : Math.round((taken / totalPlanned) * 100),
           adherence_count: totalPlanned,
         };
       }

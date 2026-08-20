@@ -25,10 +25,16 @@ export function unlockAudio() {
       src.connect(audioCtx.destination);
       src.start(0);
       unlocked = true;
-    });
+    }).catch(() => {});
   } else {
     unlocked = true;
   }
+}
+
+function ensureUnlocked() {
+  if (unlocked) return true;
+  unlockAudio();
+  return unlocked;
 }
 
 function beep(ctx, freq, startTime, duration) {
@@ -37,8 +43,8 @@ function beep(ctx, freq, startTime, duration) {
   osc.type = "sine";
   osc.frequency.value = freq;
   gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
-  gain.gain.setValueAtTime(0.3, startTime + duration - 0.02);
+  gain.gain.linearRampToValueAtTime(0.5, startTime + 0.01);
+  gain.gain.setValueAtTime(0.5, startTime + duration - 0.02);
   gain.gain.linearRampToValueAtTime(0, startTime + duration);
   osc.connect(gain);
   gain.connect(ctx.destination);
@@ -61,6 +67,7 @@ function playCycle() {
 
 export function playAlarm() {
   stopAlarm();
+  ensureUnlocked();
   playCycle();
   alarmInterval = setInterval(playCycle, 2000);
   autoStopTimer = setTimeout(stopAlarm, 30000);
