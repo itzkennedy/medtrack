@@ -55,54 +55,57 @@ export default function DoseCard({
 
   return (
     <div className={cardClass}>
-      <div className="dose-card__header">
+      {/* Top row: info left, time+badges right */}
+      <div className="dose-card__top">
         <div className="dose-card__info">
           <div className="dose-card__name">{medication_name}</div>
           <div className="dose-card__dosage">{dosage}</div>
         </div>
+
+        <div className="dose-card__meta">
+          <span
+            className={`dose-card__time ${
+              urgency === "overdue" && !status ? "dose-card__time--overdue" : ""
+            }`}
+          >
+            <Clock size={13} className="dose-card__time-icon" />
+            {time_of_day}
+          </span>
+
+          {urgency === "overdue" && !status && (
+            <span className="dose-card__urgency dose-card__urgency--overdue">
+              <span className="dose-card__pulse" />
+              Overdue
+            </span>
+          )}
+
+          {isDueSoon && (
+            <span className="dose-card__urgency dose-card__urgency--due-soon">
+              Due soon
+            </span>
+          )}
+
+          {isNotYet && (
+            <span className="dose-card__urgency dose-card__urgency--not-yet">
+              Available at {time_of_day}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="dose-card__meta">
-        <span
-          className={`dose-card__time ${
-            urgency === "overdue" && !status ? "dose-card__time--overdue" : ""
-          }`}
-        >
-          <Clock size={14} className="dose-card__time-icon" />
-          {time_of_day}
-        </span>
-
-        {urgency === "overdue" && !status && (
-          <span className="dose-card__urgency dose-card__urgency--overdue">
-            <span className="dose-card__pulse" />
-            Overdue
-          </span>
-        )}
-
-        {isDueSoon && (
-          <span className="dose-card__urgency dose-card__urgency--due-soon">
-            Due soon
-          </span>
-        )}
-
-        {isNotYet && (
-          <span className="dose-card__urgency dose-card__urgency--not-yet">
-            Available at {time_of_day}
-          </span>
-        )}
-      </div>
-
+      {/* Centered ring — visual focus */}
       {dailyProgress != null && (
         <div className="dose-card__ring-container">
           <MiniAdherenceRing value={dailyProgress} label={daysLabel} />
         </div>
       )}
 
+      {/* Actions or status */}
       {!readOnly && !status && (
         <div className="dose-card__actions">
           {isLocked ? (
             <div className="dose-card__locked">
-              <Clock size={14} />
+              <Clock size={13} />
               Available at {time_of_day}
             </div>
           ) : (
@@ -111,19 +114,19 @@ export default function DoseCard({
                 className="dose-btn dose-btn--taken"
                 onClick={() => onLog(schedule_id, "taken")}
               >
-                <CheckCircle2 size={16} /> Taken
+                <CheckCircle2 size={15} /> Taken
               </button>
               <button
                 className="dose-btn dose-btn--snooze"
                 onClick={() => onLog(schedule_id, "snoozed")}
               >
-                <AlarmClock size={16} /> Snooze
+                <AlarmClock size={15} /> Snooze
               </button>
               <button
                 className="dose-btn dose-btn--skip"
                 onClick={() => onLog(schedule_id, "skipped")}
               >
-                <XCircle size={16} /> Skip
+                <XCircle size={15} /> Skip
               </button>
             </>
           )}
