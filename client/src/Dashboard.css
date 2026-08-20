@@ -316,17 +316,20 @@
 
 .mini-ring {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 38px;
+  height: 38px;
 }
 
 .mini-ring__value {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 0.5625rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 /* ── Meta row (time + urgency) ── */
@@ -603,11 +606,13 @@
   border-radius: var(--radius);
   padding: var(--space-md) var(--space-lg);
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, background 0.15s;
+  cursor: pointer;
 }
 
 .med-item:hover {
   box-shadow: var(--shadow-sm);
+  background: var(--color-bg);
 }
 
 .med-item__info {
@@ -631,6 +636,18 @@
   font-size: 0.75rem;
   color: var(--color-muted);
   margin-top: 2px;
+}
+
+.med-item__chevron {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  opacity: 0.4;
+  margin: 0 var(--space-xs);
+  transition: opacity 0.15s;
+}
+
+.med-item:hover .med-item__chevron {
+  opacity: 0.7;
 }
 
 .med-item__actions {

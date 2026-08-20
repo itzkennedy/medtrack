@@ -21,6 +21,7 @@ import {
   AlarmClock,
   Bell,
   BellOff,
+  ChevronRight,
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import "../Dashboard.css";
@@ -425,7 +426,7 @@ export default function PatientDashboard() {
             ) : (
               <div className="med-list">
                 {medications.map((med) => (
-                  <div key={med.medication_id} className="med-item">
+                    <div key={med.medication_id} className="med-item">
                     <div className="med-item__info" onClick={() => setDetailMed(med)} style={{ cursor: "pointer" }}>
                       <div>
                         <span className="med-item__name">{med.name}</span>
@@ -437,6 +438,7 @@ export default function PatientDashboard() {
                         </div>
                       )}
                     </div>
+                    <ChevronRight size={16} className="med-item__chevron" />
                     <div className="med-item__actions">
                       <button className="med-action med-action--edit" onClick={() => setEditingMed(med)}>
                         Edit
