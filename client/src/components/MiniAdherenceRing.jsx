@@ -1,5 +1,5 @@
-const RING_SIZE = 60;
-const STROKE = 4;
+const RING_SIZE = 76;
+const STROKE = 5;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -9,7 +9,7 @@ function ringColor(pct) {
   return "var(--color-danger)";
 }
 
-export default function MiniAdherenceRing({ value, label }) {
+export default function MiniAdherenceRing({ value, count }) {
   if (value == null) return null;
 
   const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
@@ -42,7 +42,7 @@ export default function MiniAdherenceRing({ value, label }) {
         )}
       </svg>
       <span className="mini-ring__value" style={value > 0 ? { color } : undefined}>{value}%</span>
-      {label && <span className="mini-ring__label">{label}</span>}
+      {count != null && <span className="mini-ring__label">Last {count}</span>}
     </div>
   );
 }

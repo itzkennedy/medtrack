@@ -8,7 +8,7 @@ const statusIcons = {
   snoozed: <AlarmClock size={14} />,
 };
 
-export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, now, adherence, urgency: urgencyProp }) {
+export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, now, adherence, adherence_count, urgency: urgencyProp }) {
   const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now);
   const isNotYet = !status && urgency === "not-yet";
   const isDueSoon = !status && urgency === "due-soon";
@@ -59,12 +59,13 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
           </div>
         </div>
 
+        {adherence != null && (
+          <div className="dose-card__ring">
+            <MiniAdherenceRing value={adherence} count={adherence_count} />
+          </div>
+        )}
+
         <div className="dose-card__right">
-          {adherence != null && (
-            <div className="dose-card__ring">
-              <MiniAdherenceRing value={adherence} label="Last 30" />
-            </div>
-          )}
           {readOnly ? (
             isLocked ? (
               <span className="dose-card__status dose-card__status--not-yet">

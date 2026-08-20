@@ -124,6 +124,7 @@ router.get("/today", authenticate, async (req, res) => {
 
         adherenceMap[s.schedule_id] = {
           adherence: occurrences.length === 0 ? null : Math.round((taken / occurrences.length) * 100),
+          adherence_count: occurrences.length,
         };
       }
     }
@@ -143,6 +144,7 @@ router.get("/today", authenticate, async (req, res) => {
         log_id: logMap[s.schedule_id]?.log_id || null,
         logged_at: logMap[s.schedule_id]?.logged_at || null,
         adherence: adherenceMap[s.schedule_id]?.adherence ?? null,
+        adherence_count: adherenceMap[s.schedule_id]?.adherence_count ?? null,
       }));
 
     res.json(doses);
