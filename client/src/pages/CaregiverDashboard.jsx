@@ -313,9 +313,13 @@ export default function CaregiverDashboard() {
                       <div className="empty-state__desc">This patient has no doses for today.</div>
                     </div>
                   ) : (
-                    doses.map((d) => (
-                      <DoseCard key={d.schedule_id} {...d} readOnly now={now} />
-                    ))
+                    (() => {
+                      const takenToday = doses.filter((d) => d.status === "taken").length;
+                      const dailyProgress = doses.length > 0 ? Math.round((takenToday / doses.length) * 100) : 0;
+                      return doses.map((d) => (
+                        <DoseCard key={d.schedule_id} {...d} dailyProgress={dailyProgress} readOnly now={now} />
+                      ));
+                    })()
                   )}
                 </section>
 

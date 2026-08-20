@@ -9,7 +9,7 @@ function ringColor(pct) {
   return "var(--color-danger)";
 }
 
-export default function MiniAdherenceRing({ value, count }) {
+export default function MiniAdherenceRing({ value, label }) {
   if (value == null) return null;
 
   const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
@@ -42,7 +42,7 @@ export default function MiniAdherenceRing({ value, count }) {
         )}
       </svg>
       <span className="mini-ring__value" style={value > 0 ? { color } : undefined}>{value}%</span>
-      {count != null && <span className="mini-ring__label">Last {count}</span>}
+      {label && <span className="mini-ring__label">{label}</span>}
     </div>
   );
 }

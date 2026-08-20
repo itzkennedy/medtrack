@@ -319,14 +319,19 @@ export default function PatientDashboard() {
                     </div>
                   </div>
                 ) : (
-                  doses.map((d) => (
-                    <DoseCard
-                      key={d.schedule_id}
-                      {...d}
-                      onLog={handleLogDose}
-                      now={now}
-                    />
-                  ))
+                  (() => {
+                    const takenToday = doses.filter((d) => d.status === "taken").length;
+                    const dailyProgress = doses.length > 0 ? Math.round((takenToday / doses.length) * 100) : 0;
+                    return doses.map((d) => (
+                      <DoseCard
+                        key={d.schedule_id}
+                        {...d}
+                        dailyProgress={dailyProgress}
+                        onLog={handleLogDose}
+                        now={now}
+                      />
+                    ));
+                  })()
                 )}
               </section>
 

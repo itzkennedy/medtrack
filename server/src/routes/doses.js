@@ -274,7 +274,10 @@ router.get("/adherence", authenticate, async (req, res) => {
         }
 
         if (!hasSchedule) continue;
-        if (!allTaken) break;
+        if (!allTaken) {
+          if (i === 0) continue;
+          break;
+        }
         streak++;
       }
 
