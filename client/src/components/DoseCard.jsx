@@ -8,6 +8,15 @@ const statusIcons = {
   snoozed: <AlarmClock size={14} />,
 };
 
+function daysActiveLabel(start_date, end_date) {
+  if (!start_date) return null;
+  const start = new Date(start_date + "T00:00:00");
+  const end = end_date ? new Date(end_date + "T00:00:00") : new Date();
+  const diff = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return "0 days";
+  return diff === 1 ? "1 day" : `${diff} days`;
+}
+
 export default function DoseCard({
   schedule_id,
   medication_name,
@@ -20,6 +29,8 @@ export default function DoseCard({
   now,
   dailyProgress,
   urgency: urgencyProp,
+  start_date,
+  end_date,
 }) {
   const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now);
   const isNotYet = !status && urgency === "not-yet";
@@ -27,6 +38,7 @@ export default function DoseCard({
   const isLocked = isNotYet || isDueSoon;
   const latenessMin = status ? computeLatenessMinutes(time_of_day, logged_at, now) : 0;
   const isLate = latenessMin > 30;
+  const daysLabel = daysActiveLabel(start_date, end_date);
 
   const cardClass = [
     "dose-card",
@@ -43,7 +55,6 @@ export default function DoseCard({
 
   return (
     <div className={cardClass}>
-      {/* Top row: Name + Ring */}
       <div className="dose-card__header">
         <div className="dose-card__info">
           <div className="dose-card__name">{medication_name}</div>
@@ -52,12 +63,11 @@ export default function DoseCard({
 
         {dailyProgress != null && (
           <div className="dose-card__ring">
-            <MiniAdherenceRing value={dailyProgress} label="Today" />
+            <MiniAdherenceRing value={dailyProgress} label={daysLabel} />
           </div>
         )}
       </div>
 
-      {/* Time + Urgency */}
       <div className="dose-card__meta">
         <span
           className={`dose-card__time ${
@@ -88,7 +98,6 @@ export default function DoseCard({
         )}
       </div>
 
-      {/* Actions */}
       {!readOnly && !status && (
         <div className="dose-card__actions">
           {isLocked ? (
@@ -121,7 +130,6 @@ export default function DoseCard({
         </div>
       )}
 
-      {/* Status when already logged */}
       {status && (
         <div className="dose-card__status-row">
           <span className={`dose-card__status dose-card__status--${status}`}>
