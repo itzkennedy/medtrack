@@ -8,7 +8,7 @@ const statusIcons = {
   snoozed: <AlarmClock size={14} />,
 };
 
-export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, now, adherence_7d, adherence_30d, urgency: urgencyProp }) {
+export default function DoseCard({ schedule_id, medication_name, dosage, time_of_day, status, logged_at, onLog, readOnly, now, adherence, urgency: urgencyProp }) {
   const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now);
   const isNotYet = !status && urgency === "not-yet";
   const isDueSoon = !status && urgency === "due-soon";
@@ -35,12 +35,6 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
         <div className="dose-card__left">
           <div className="dose-card__name">{medication_name}</div>
           <div className="dose-card__dosage">{dosage}</div>
-          {(adherence_7d != null || adherence_30d != null) && (
-            <div className="dose-card__adherence">
-              <MiniAdherenceRing value={adherence_7d} label="Last 7" />
-              <MiniAdherenceRing value={adherence_30d} label="Last 30" />
-            </div>
-          )}
           <div className="dose-card__meta">
             <span className={`dose-card__time ${urgency === "overdue" && !status ? "dose-card__time--overdue" : ""}`}>
               <Clock size={14} className="dose-card__time-icon" />
@@ -66,6 +60,11 @@ export default function DoseCard({ schedule_id, medication_name, dosage, time_of
         </div>
 
         <div className="dose-card__right">
+          {adherence != null && (
+            <div className="dose-card__ring">
+              <MiniAdherenceRing value={adherence} />
+            </div>
+          )}
           {readOnly ? (
             isLocked ? (
               <span className="dose-card__status dose-card__status--not-yet">

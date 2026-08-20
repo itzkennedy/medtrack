@@ -34,15 +34,8 @@ function SkeletonCard() {
   return <div className="skeleton skeleton--card" />;
 }
 
-function SkeletonAdherenceCard() {
-  return (
-    <div className="adherence-card skeleton--adherence-card">
-      <div className="skeleton-grid" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
-        <div className="skeleton skeleton--line-sm" />
-      </div>
-    </div>
-  );
+function SkeletonStreak() {
+  return <div className="skeleton skeleton--streak" />;
 }
 
 export default function CaregiverDashboard() {
@@ -326,11 +319,11 @@ export default function CaregiverDashboard() {
                   )}
                 </section>
 
-                <section>
-                  <div className="section-header">
+                <section style={{ textAlign: "center" }}>
+                  <div className="section-header" style={{ justifyContent: "center" }}>
                     <h2 className="section-header__title">Your Streak</h2>
                   </div>
-                  {isLoadingDoses ? <SkeletonAdherenceCard /> : <AdherenceStat stats={adherence} />}
+                  {isLoadingDoses ? <SkeletonStreak /> : <AdherenceStat stats={adherence} />}
                 </section>
               </>
             )}

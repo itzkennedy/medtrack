@@ -119,15 +119,11 @@ router.get("/today", authenticate, async (req, res) => {
       }
 
       for (const s of schedules) {
-        const last7 = countOccurrences(s.days_of_week, s.start_date, 7);
-        const last30 = countOccurrences(s.days_of_week, s.start_date, 30);
-
-        const taken7 = last7.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
-        const taken30 = last30.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
+        const occurrences = countOccurrences(s.days_of_week, s.start_date, 30);
+        const taken = occurrences.filter((d) => logBySchedule[s.schedule_id]?.[d] === "taken").length;
 
         adherenceMap[s.schedule_id] = {
-          adherence_7d: last7.length === 0 ? null : Math.round((taken7 / last7.length) * 100),
-          adherence_30d: last30.length === 0 ? null : Math.round((taken30 / last30.length) * 100),
+          adherence: occurrences.length === 0 ? null : Math.round((taken / occurrences.length) * 100),
         };
       }
     }
@@ -146,8 +142,7 @@ router.get("/today", authenticate, async (req, res) => {
         status: logMap[s.schedule_id]?.status || null,
         log_id: logMap[s.schedule_id]?.log_id || null,
         logged_at: logMap[s.schedule_id]?.logged_at || null,
-        adherence_7d: adherenceMap[s.schedule_id]?.adherence_7d ?? null,
-        adherence_30d: adherenceMap[s.schedule_id]?.adherence_30d ?? null,
+        adherence: adherenceMap[s.schedule_id]?.adherence ?? null,
       }));
 
     res.json(doses);

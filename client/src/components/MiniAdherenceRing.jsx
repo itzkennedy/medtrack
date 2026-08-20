@@ -9,7 +9,7 @@ function ringColor(pct) {
   return "var(--color-danger)";
 }
 
-export default function MiniAdherenceRing({ value, label }) {
+export default function MiniAdherenceRing({ value }) {
   if (value == null) return null;
 
   const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
@@ -19,7 +19,6 @@ export default function MiniAdherenceRing({ value, label }) {
     <div className="mini-ring">
       <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
         <circle
-          className="mini-ring__track"
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
           r={RADIUS}
@@ -28,7 +27,6 @@ export default function MiniAdherenceRing({ value, label }) {
           strokeWidth={STROKE}
         />
         <circle
-          className="mini-ring__arc"
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
           r={RADIUS}
@@ -42,7 +40,6 @@ export default function MiniAdherenceRing({ value, label }) {
         />
       </svg>
       <span className="mini-ring__value" style={{ color }}>{value}%</span>
-      <span className="mini-ring__label">{label}</span>
     </div>
   );
 }
