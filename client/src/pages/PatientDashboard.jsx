@@ -43,16 +43,9 @@ function SkeletonCard() {
 function SkeletonAdherenceCard() {
   return (
     <div className="adherence-card skeleton--adherence-card">
-      <div className="skeleton-grid">
-        <div className="skeleton skeleton--ring" />
-        <div>
-          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
-          <div className="skeleton skeleton--line-sm" />
-        </div>
-        <div>
-          <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
-          <div className="skeleton skeleton--line-sm" />
-        </div>
+      <div className="skeleton-grid" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+        <div className="skeleton skeleton--stat" style={{ marginBottom: 6 }} />
+        <div className="skeleton skeleton--line-sm" />
       </div>
     </div>
   );
