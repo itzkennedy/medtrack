@@ -1,5 +1,5 @@
-const RING_SIZE = 64;
-const STROKE = 4;
+const RING_SIZE = 48;
+const STROKE = 3;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
