@@ -197,7 +197,7 @@ router.get("/adherence", authenticate, async (req, res) => {
     if (target.error) return res.status(target.status).json({ error: target.error });
 
     const { rows: schedules } = await db.query(
-      `SELECT s.schedule_id, s.days_of_week
+      `SELECT s.schedule_id, s.days_of_week, m.start_date::text AS start_date
        FROM schedule s
        JOIN medication m ON s.medication_id = m.medication_id
        WHERE m.user_id = $1`,
@@ -213,7 +213,7 @@ router.get("/adherence", authenticate, async (req, res) => {
        FROM adherence_log al
        JOIN schedule s ON al.schedule_id = s.schedule_id
        JOIN medication m ON s.medication_id = m.medication_id
-       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - INTERVAL '30 days'`,
+       WHERE m.user_id = $1 AND al.logged_at >= CURRENT_DATE - INTERVAL '365 days'`,
       [target.userId]
     );
 
@@ -225,6 +225,10 @@ router.get("/adherence", authenticate, async (req, res) => {
 
     function isScheduleActiveOnDate(schedule, date) {
       const dayAbbr = DAY_NAMES[date.getDay()];
+      if (schedule.start_date) {
+        const medStart = new Date(schedule.start_date + "T00:00:00");
+        if (date < medStart) return false;
+      }
       return isScheduleActiveOnDay(schedule.days_of_week, dayAbbr);
     }
 
