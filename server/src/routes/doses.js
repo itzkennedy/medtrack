@@ -137,21 +137,25 @@ router.get("/today", authenticate, async (req, res) => {
     let adherenceMap = {};
     if (scheduleIds.length > 0) {
       const { rows: recentLogs } = await db.query(
-        `SELECT al.schedule_id, al.status, al.logged_at::date::text AS log_date
+        `SELECT al.schedule_id, al.status, al.logged_at
          FROM adherence_log al
          WHERE al.schedule_id = ANY($1::int[])
-           AND al.logged_at >= $2::date - INTERVAL '365 days'`,
+           AND al.logged_at >= ($2::date - INTERVAL '365 days')::timestamp`,
         [scheduleIds, todayDate]
       );
       const logBySchedule = {};
       for (const rl of recentLogs) {
         if (!logBySchedule[rl.schedule_id]) logBySchedule[rl.schedule_id] = {};
-        logBySchedule[rl.schedule_id][rl.log_date] = rl.status;
+        logBySchedule[rl.schedule_id][formatDate(new Date(rl.logged_at))] = rl.status;
       }
 
       function computeProgress(schedule) {
-        const medStart = schedule.start_date ? new Date(schedule.start_date + "T00:00:00") : new Date(todayDateObj);
-        const planEnd = schedule.end_date ? new Date(schedule.end_date + "T00:00:00") : todayDateObj;
+        const medStart = schedule.start_date
+          ? new Date(schedule.start_date + "T00:00:00")
+          : new Date(todayDateObj);
+        const planEnd = schedule.end_date
+          ? new Date(schedule.end_date + "T00:00:00")
+          : todayDateObj;
         const periodEnd = todayDateObj < planEnd ? todayDateObj : planEnd;
         let totalPlanned = 0;
         let taken = 0;
