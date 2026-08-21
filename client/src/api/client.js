@@ -23,7 +23,9 @@ function getClientDateParams() {
   const d = String(now.getDate()).padStart(2, "0");
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
-  return { client_date: `${y}-${m}-${d}`, client_time: `${hh}:${mm}` };
+  // minutes to ADD to a UTC timestamp to get local time (getTimezoneOffset is inverted)
+  const tzOffsetMin = -now.getTimezoneOffset();
+  return { client_date: `${y}-${m}-${d}`, client_time: `${hh}:${mm}`, client_tz_offset: String(tzOffsetMin) };
 }
 
 async function request(path, options = {}) {

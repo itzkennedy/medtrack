@@ -64,6 +64,7 @@ export default function PatientDashboard() {
   const [caregivers, setCaregivers] = useState([]);
   const [toast, setToast] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [logPending, setLogPending] = useState(null);
   const { permission, requestPermission, stopAlarm } = useReminders(doses);
   const now = useCurrentTime();
 
@@ -137,6 +138,8 @@ export default function PatientDashboard() {
   }, [view, history.length, historyLoading, fetchHistory]);
 
   const handleLogDose = async (scheduleId, status) => {
+    if (logPending) return;
+    setLogPending({ scheduleId, status });
     try {
       await api.logDose(scheduleId, status);
       stopAlarm();
@@ -144,6 +147,8 @@ export default function PatientDashboard() {
       await refresh();
     } catch (err) {
       showToast(err.message || "Failed to log dose", "error");
+    } finally {
+      setLogPending(null);
     }
   };
 
@@ -325,6 +330,7 @@ export default function PatientDashboard() {
                       {...d}
                       onLog={handleLogDose}
                       now={now}
+                      pendingLog={logPending?.scheduleId === d.schedule_id ? logPending.status : null}
                     />
                   ))
                 )}

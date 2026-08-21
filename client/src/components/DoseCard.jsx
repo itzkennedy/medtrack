@@ -32,6 +32,7 @@ export default function DoseCard({
   urgency: urgencyProp,
   start_date,
   end_date,
+  pendingLog,
 }) {
   const urgency = urgencyProp ?? computeUrgency(time_of_day, status, now, scheduled_date);
   const isNotYet = !status && urgency === "not-yet";
@@ -111,21 +112,24 @@ export default function DoseCard({
             <>
               <button
                 className="dose-btn dose-btn--taken"
+                disabled={!!pendingLog}
                 onClick={() => onLog(schedule_id, "taken")}
               >
-                <CheckCircle2 size={15} /> Taken
+                <CheckCircle2 size={15} /> {pendingLog === "taken" ? "Saving…" : "Taken"}
               </button>
               <button
                 className="dose-btn dose-btn--snooze"
+                disabled={!!pendingLog}
                 onClick={() => onLog(schedule_id, "snoozed")}
               >
-                <AlarmClock size={15} /> Snooze
+                <AlarmClock size={15} /> {pendingLog === "snoozed" ? "Saving…" : "Snooze"}
               </button>
               <button
                 className="dose-btn dose-btn--skip"
+                disabled={!!pendingLog}
                 onClick={() => onLog(schedule_id, "skipped")}
               >
-                <XCircle size={15} /> Skip
+                <XCircle size={15} /> {pendingLog === "skipped" ? "Saving…" : "Skip"}
               </button>
             </>
           )}

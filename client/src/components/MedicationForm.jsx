@@ -27,15 +27,19 @@ function daysArrayToString(arr) {
   return arr.join(",");
 }
 
-export default function MedicationForm({ onAdded, editing, onDone }) {
-  const [form, setForm] = useState({
+function blankForm() {
+  return {
     name: "",
     dosage: "",
     startDate: "",
     endDate: "",
     time: "",
     days: [...ALL_DAYS],
-  });
+  };
+}
+
+export default function MedicationForm({ onAdded, editing, onDone }) {
+  const [form, setForm] = useState(blankForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +56,8 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
         time,
         days: daysStringToArray(schedule?.days_of_week || "DAILY"),
       });
+    } else {
+      setForm(blankForm());
     }
   }, [editing]);
 
@@ -68,7 +74,8 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const validate = () => {
@@ -107,7 +114,7 @@ export default function MedicationForm({ onAdded, editing, onDone }) {
         await api.addMedication(payload);
       }
       if (!editing) {
-        setForm({ name: "", dosage: "", startDate: "", endDate: "", time: "", days: [...ALL_DAYS] });
+        setForm(blankForm());
       }
       onAdded?.();
       onDone?.();

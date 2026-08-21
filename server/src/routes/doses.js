@@ -80,12 +80,29 @@ function getClientDateTime(req) {
   return { dateStr, timeStr };
 }
 
+// logged_at is stored in UTC; the client speaks in its local date. Prefer the
+// client's explicit UTC offset (minutes to add to UTC) so day-boundary
+// comparisons use client-local days; fall back to deriving it from client clock.
+function getClientOffsetSeconds(req) {
+  const raw = req.query.client_tz_offset;
+  if (/^[+-]?\d{1,4}$/.test(raw)) {
+    return parseInt(raw, 10) * 60;
+  }
+  const { dateStr, timeStr } = getClientDateTime(req);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{1,2}:\d{2}$/.test(timeStr)) return 0;
+  const clientNow = new Date(`${dateStr}T${timeStr}:00`);
+  if (Number.isNaN(clientNow.getTime())) return 0;
+  // Round to the nearest minute to absorb request latency.
+  return Math.round((clientNow.getTime() - Date.now()) / 60000) * 60;
+}
+
 router.get("/today", authenticate, async (req, res) => {
   try {
     const target = await resolvePatientId(req);
     if (target.error) return res.status(target.status).json({ error: target.error });
 
     const { dateStr: todayDate } = getClientDateTime(req);
+    const offsetSecs = getClientOffsetSeconds(req);
 
     const { rows: schedules } = await db.query(
       `SELECT s.schedule_id, m.medication_id, m.name AS medication_name, m.dosage,
@@ -120,9 +137,10 @@ router.get("/today", authenticate, async (req, res) => {
       const logResult = await db.query(
         `SELECT schedule_id, status, log_id, logged_at
          FROM adherence_log
-         WHERE schedule_id = ANY($1::int[]) AND logged_at::date = $2::date
+         WHERE schedule_id = ANY($1::int[])
+           AND (logged_at + make_interval(secs => $2::int))::date = $3::date
          ORDER BY logged_at DESC`,
-        [scheduleIds, todayDate]
+        [scheduleIds, offsetSecs, todayDate]
       );
       logs = logResult.rows;
     }

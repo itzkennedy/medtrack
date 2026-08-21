@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { unlockAudio, playAlarm, stopAlarm } from "./alarm.js";
+import { CLOCK_NUDGE_EVENT } from "./useCurrentTime.js";
 
 function parseTimeToday(timeOfDay) {
   const match = timeOfDay.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
@@ -83,6 +84,7 @@ export default function useReminders(doses) {
           `Take ${dose.medication_name} — ${dose.dosage}`
         );
         playAlarm();
+        window.dispatchEvent(new CustomEvent(CLOCK_NUDGE_EVENT));
       }, delay);
       timersRef.current.push(timerId);
     }
